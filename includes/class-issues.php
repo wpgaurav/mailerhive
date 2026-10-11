@@ -23,6 +23,35 @@ final class Issues {
 		add_shortcode( 'mailerhive_issues', array( __CLASS__, 'shortcode' ) );
 		add_filter( 'manage_' . self::TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . self::TYPE . '_posts_custom_column', array( __CLASS__, 'column' ), 10, 2 );
+		add_action( 'wp_after_insert_post', array( __CLASS__, 'purge' ), 30, 2 );
+	}
+
+	/**
+	 * Keep cached pages current: the issue, the archive and the newsletter page that
+	 * lists recent issues. Uses GT Performance's per-URL purge when it is active.
+	 */
+	public static function purge( int $post_id, \WP_Post $post ): void {
+		if ( self::TYPE !== $post->post_type || ! in_array( $post->post_status, array( 'publish', 'trash', 'draft', 'private' ), true ) ) {
+			return;
+		}
+		if ( ! class_exists( '\GTPerformance\Cache\Purger' ) ) {
+			return;
+		}
+		$urls = array( get_permalink( $post ), get_post_type_archive_link( self::TYPE ) );
+		$page = (int) Settings::get( 'landing_page_id' );
+		if ( $page ) {
+			$urls[] = get_permalink( $page );
+		}
+		$all = array();
+		foreach ( array_filter( $urls ) as $u ) {
+			$all[] = trailingslashit( $u );
+			$all[] = untrailingslashit( $u );
+		}
+		try {
+			( new \GTPerformance\Cache\Purger() )->purgeUrls( array_values( array_unique( $all ) ) );
+		} catch ( \Throwable $e ) {
+			return;
+		}
 	}
 
 	public static function register(): void {
