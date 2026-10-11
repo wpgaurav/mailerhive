@@ -22,6 +22,7 @@ define( 'MAILERHIVE_URL', plugin_dir_url( __FILE__ ) );
 require_once MAILERHIVE_DIR . 'includes/class-settings.php';
 require_once MAILERHIVE_DIR . 'includes/class-issues.php';
 require_once MAILERHIVE_DIR . 'includes/class-content.php';
+require_once MAILERHIVE_DIR . 'includes/class-importer.php';
 require_once MAILERHIVE_DIR . 'includes/class-links.php';
 require_once MAILERHIVE_DIR . 'includes/class-shell.php';
 require_once MAILERHIVE_DIR . 'includes/class-mailerpress-bridge.php';

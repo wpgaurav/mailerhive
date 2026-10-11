@@ -53,7 +53,7 @@ final class MailerPress_Bridge {
 	}
 
 	public static function redirect_web_view(): void {
-		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+		if ( ! Settings::on( 'redirect_web_view' ) || is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			return;
 		}
 		$path = trim( (string) strtok( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), '?' ), '/' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
@@ -110,8 +110,8 @@ final class MailerPress_Bridge {
 		}
 
 		$lists = array_map( 'intval', (array) Settings::get( 'mirror_list_ids' ) );
-		if ( ! $lists ) {
-			return $result;
+		if ( ! $lists || ! Settings::on( 'mirror_enabled' ) ) {
+			return self::record( $result );
 		}
 		$sent = $wpdb->get_results(
 			"SELECT campaign_id, name, subject, config, updated_at FROM {$table}
@@ -126,10 +126,15 @@ final class MailerPress_Bridge {
 			if ( self::issue_for_campaign( (int) $row->campaign_id ) ) {
 				continue;
 			}
-			if ( self::mirror( (int) $row->campaign_id, 'publish' ) ) {
+			if ( self::mirror( (int) $row->campaign_id, 'draft' === Settings::get( 'mirror_status' ) ? 'draft' : 'publish' ) ) {
 				++$result['mirrored'];
 			}
 		}
+		return self::record( $result );
+	}
+
+	private static function record( array $result ): array {
+		update_option( Settings::SYNC_OPTION, $result + array( 'time' => time() ), false );
 		return $result;
 	}
 

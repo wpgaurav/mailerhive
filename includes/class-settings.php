@@ -1,8 +1,8 @@
 <?php
 /**
- * MailerHive settings: one option, a small settings screen, and auto-detection of
- * values the site already holds (the Rybbit tag in theme footer scripts, the
- * MailerPress Newsletter list, the /newsletter/ page and the signup form).
+ * MailerHive settings: one option, a tabbed screen under Newsletter → Settings, and
+ * auto-detection of values the site already holds (Rybbit tag in theme footer scripts,
+ * the MailerPress Newsletter list, the /newsletter/ page, the signup form).
  */
 
 namespace MailerHive;
@@ -10,27 +10,79 @@ namespace MailerHive;
 defined( 'ABSPATH' ) || exit;
 
 final class Settings {
-	const OPTION = 'mailerhive_settings';
+	const OPTION      = 'mailerhive_settings';
+	const SYNC_OPTION = 'mailerhive_last_sync';
+	const FLUSH_FLAG  = 'mailerhive_flush_rewrites';
+
+	/** Checkbox fields per tab, so a partial (one-tab) save can record "off". */
+	const CHECKBOXES = array(
+		'issues'      => array( 'show_subscribe', 'show_pager', 'nofollow', 'external_new_tab' ),
+		'design'      => array( 'detach_theme', 'shell_mailerpress_pages' ),
+		'mailerpress' => array( 'mirror_enabled', 'redirect_web_view' ),
+		'analytics'   => array( 'rybbit_enabled' ),
+	);
+
+	const TABS = array(
+		'general'     => 'General',
+		'issues'      => 'Issues',
+		'design'      => 'Design',
+		'mailerpress' => 'MailerPress',
+		'analytics'   => 'Analytics',
+		'tools'       => 'Tools & status',
+	);
 
 	public static function defaults(): array {
 		return array(
-			'brand_name'         => 'From the Workbench',
-			'author_name'        => 'Gaurav Tiwari',
-			'author_initials'    => 'GT',
-			'tagline'            => 'Notes on WordPress, publishing, search, and independent products, sent when something real comes off my bench.',
-			'landing_page_id'    => 0,
-			'form_shortcode'     => '[cf_form slug="from-the-workbench"]',
-			'mirror_list_ids'    => array(),
-			'rybbit_src'         => '',
-			'rybbit_site_id'     => '',
-			'internal_hosts'     => array(),
-			'privacy_url'        => '',
+			// General.
+			'brand_name'              => 'From the Workbench',
+			'author_name'             => 'Gaurav Tiwari',
+			'author_initials'         => 'GT',
+			'avatar_url'              => '',
+			'tagline'                 => 'Notes on WordPress, publishing, search, and independent products, sent when something real comes off my bench.',
+			'landing_page_id'         => 0,
+			'form_slug'               => 'from-the-workbench',
+			'form_shortcode'          => '',
+			// Issues.
+			'issue_base'              => 'newsletter/issue',
+			'archive_title'           => '',
+			'archive_intro'           => '',
+			'subscribe_heading'       => 'Get the next note from my workbench',
+			'subscribe_facts'         => "Free\nNo fixed schedule\nUnsubscribe from any issue",
+			'show_subscribe'          => true,
+			'show_pager'              => true,
+			'nofollow'                => true,
+			'external_new_tab'        => false,
+			'internal_hosts'          => array(),
+			// Design.
+			'detach_theme'            => true,
+			'shell_mailerpress_pages' => true,
+			'color_scheme'            => 'auto',
+			'accent_light'            => '#C0392B',
+			'accent_dark'             => '#E8836F',
+			'header_links'            => '',
+			'footer_note'             => 'Already subscribed? Every email ends with links to manage or cancel your subscription.',
+			'footer_links'            => '',
+			'privacy_url'             => '',
+			'custom_css'              => '',
+			// MailerPress.
+			'mirror_enabled'          => true,
+			'mirror_list_ids'         => array(),
+			'mirror_status'           => 'publish',
+			'redirect_web_view'       => true,
+			// Analytics.
+			'rybbit_enabled'          => true,
+			'rybbit_src'              => '',
+			'rybbit_site_id'          => '',
+			'head_html'               => '',
 		);
 	}
 
 	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
+		add_action( 'admin_post_mailerhive_tool', array( __CLASS__, 'run_tool' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_flush' ), 99 );
+		add_filter( 'plugin_action_links_' . plugin_basename( MAILERHIVE_FILE ), array( __CLASS__, 'action_links' ) );
 	}
 
 	public static function all(): array {
@@ -43,46 +95,50 @@ final class Settings {
 		return $all[ $key ] ?? null;
 	}
 
-	/**
-	 * Fill blanks from what the site already has. Never overwrites a saved value.
-	 */
-	public static function seed(): void {
-		$s = self::all();
+	public static function on( string $key ): bool {
+		return (bool) self::get( $key );
+	}
 
-		if ( ! $s['landing_page_id'] ) {
-			$page = get_page_by_path( 'newsletter' );
-			$s['landing_page_id'] = $page ? (int) $page->ID : 0;
+	public static function url(): string {
+		return admin_url( 'edit.php?post_type=' . Issues::TYPE . '&page=mailerhive' );
+	}
+
+	public static function action_links( array $links ): array {
+		array_unshift( $links, '<a href="' . esc_url( self::url() ) . '">Settings</a>' );
+		return $links;
+	}
+
+	/* ---------- derived values ---------- */
+
+	public static function form_shortcode(): string {
+		$custom = trim( (string) self::get( 'form_shortcode' ) );
+		if ( '' !== $custom ) {
+			return $custom;
 		}
+		$slug = sanitize_title( (string) self::get( 'form_slug' ) );
+		return $slug ? '[cf_form slug="' . $slug . '"]' : '';
+	}
 
-		if ( ! $s['rybbit_src'] || ! $s['rybbit_site_id'] ) {
-			$md      = get_option( 'marketers_delight', array() );
-			$scripts = (string) ( $md['settings']['footer_scripts'] ?? '' ) . (string) ( $md['settings']['header_scripts'] ?? '' );
-			if ( preg_match( '/<script\b[^>]*\bsrc=["\']([^"\']*\/api\/script\.js)["\'][^>]*\bdata-site-id=["\']([A-Za-z0-9_-]+)["\']/i', $scripts, $m )
-				|| preg_match( '/<script\b[^>]*\bdata-site-id=["\']([A-Za-z0-9_-]+)["\'][^>]*\bsrc=["\']([^"\']*\/api\/script\.js)["\']/i', $scripts, $m2 ) ) {
-				if ( ! empty( $m ) ) {
-					$s['rybbit_src']     = $m[1];
-					$s['rybbit_site_id'] = $m[2];
-				} else {
-					$s['rybbit_src']     = $m2[2];
-					$s['rybbit_site_id'] = $m2[1];
-				}
+	public static function issue_base(): string {
+		$base = trim( (string) self::get( 'issue_base' ), '/' );
+		$base = implode( '/', array_filter( array_map( 'sanitize_title', explode( '/', $base ) ) ) );
+		return $base ?: 'newsletter/issue';
+	}
+
+	/** "Label | URL" lines to [label, url] pairs. */
+	public static function link_lines( string $key ): array {
+		$out = array();
+		foreach ( preg_split( '/\r\n|\r|\n/', (string) self::get( $key ) ) as $line ) {
+			$parts = array_map( 'trim', explode( '|', $line, 2 ) );
+			if ( 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1] ) {
+				$out[] = array( $parts[0], $parts[1] );
 			}
 		}
+		return $out;
+	}
 
-		if ( ! $s['mirror_list_ids'] ) {
-			global $wpdb;
-			$table = $wpdb->prefix . 'mailerpress_lists';
-			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
-				$id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT list_id FROM {$table} WHERE name = %s", 'Newsletter' ) );
-				$s['mirror_list_ids'] = $id ? array( $id ) : array();
-			}
-		}
-
-		if ( ! $s['privacy_url'] ) {
-			$s['privacy_url'] = (string) get_privacy_policy_url();
-		}
-
-		update_option( self::OPTION, $s, false );
+	public static function lines( string $key ): array {
+		return array_values( array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', (string) self::get( $key ) ) ) ) );
 	}
 
 	public static function internal_hosts(): array {
@@ -90,12 +146,119 @@ final class Settings {
 		foreach ( (array) self::get( 'internal_hosts' ) as $h ) {
 			$hosts[] = strtolower( trim( (string) $h ) );
 		}
-		$hosts = array_filter( array_unique( array_map( 'strtolower', $hosts ) ) );
-		return array_values( $hosts );
+		return array_values( array_filter( array_unique( array_map( 'strtolower', $hosts ) ) ) );
 	}
 
+	/**
+	 * Fill blanks from what the site already has. Never overwrites a saved value.
+	 */
+	public static function seed(): void {
+		$s = self::all();
+
+		if ( ! $s['landing_page_id'] ) {
+			$page                 = get_page_by_path( 'newsletter' );
+			$s['landing_page_id'] = $page ? (int) $page->ID : 0;
+		}
+
+		if ( ! $s['rybbit_src'] || ! $s['rybbit_site_id'] ) {
+			$md      = get_option( 'marketers_delight', array() );
+			$scripts = (string) ( $md['settings']['footer_scripts'] ?? '' ) . (string) ( $md['settings']['header_scripts'] ?? '' );
+			if ( preg_match( '/<script\b[^>]*>/i', $scripts ) ) {
+				foreach ( array_filter( preg_split( '/(?=<script\b)/i', $scripts ) ) as $tag ) {
+					if ( preg_match( '/\bsrc=["\']([^"\']*\/script\.js)["\']/i', $tag, $src ) && preg_match( '/\bdata-site-id=["\']([A-Za-z0-9_-]+)["\']/i', $tag, $id ) ) {
+						$s['rybbit_src']     = $src[1];
+						$s['rybbit_site_id'] = $id[1];
+						break;
+					}
+				}
+			}
+		}
+
+		if ( ! $s['mirror_list_ids'] ) {
+			foreach ( self::mailerpress_lists() as $id => $name ) {
+				if ( 'Newsletter' === $name ) {
+					$s['mirror_list_ids'] = array( (int) $id );
+				}
+			}
+		}
+
+		if ( ! $s['privacy_url'] ) {
+			$s['privacy_url'] = (string) get_privacy_policy_url();
+		}
+
+		if ( '' === trim( (string) $s['header_links'] ) ) {
+			$s['header_links'] = 'All issues | /' . self::issue_base() . '/';
+		}
+
+		if ( '' === trim( (string) $s['footer_links'] ) ) {
+			$lines = array( 'All issues | /' . self::issue_base() . '/', 'gauravtiwari.org | /' );
+			if ( $s['privacy_url'] ) {
+				$lines[] = 'Privacy | ' . $s['privacy_url'];
+			}
+			$s['footer_links'] = implode( "\n", $lines );
+		}
+
+		update_option( self::OPTION, $s, false );
+	}
+
+	public static function maybe_flush(): void {
+		if ( get_option( self::FLUSH_FLAG ) ) {
+			delete_option( self::FLUSH_FLAG );
+			flush_rewrite_rules( false );
+		}
+	}
+
+	/* ---------- data sources for the screen ---------- */
+
+	public static function mailerpress_lists(): array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'mailerpress_lists';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $wpdb->get_results( "SELECT list_id, name FROM {$table} ORDER BY name" ) as $row ) { // phpcs:ignore WordPress.DB.PreparedSQL
+			$out[ (int) $row->list_id ] = (string) $row->name;
+		}
+		return $out;
+	}
+
+	public static function core_forms(): array {
+		$out = array();
+		foreach ( get_posts( array( 'post_type' => 'core-form', 'post_status' => 'publish', 'posts_per_page' => 200, 'orderby' => 'title', 'order' => 'ASC' ) ) as $f ) {
+			$out[ $f->post_name ] = $f->post_title;
+		}
+		return $out;
+	}
+
+	/** Does a MailerPress "Post Published" workflow target the issue post type? */
+	public static function workflow_status(): array {
+		global $wpdb;
+		$steps = $wpdb->prefix . 'mailerpress_automations_steps';
+		$autos = $wpdb->prefix . 'mailerpress_automations';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $steps ) ) !== $steps ) {
+			return array( 'found' => false, 'status' => '' );
+		}
+		$cols = $wpdb->get_col( "SHOW COLUMNS FROM {$steps}" ); // phpcs:ignore WordPress.DB.PreparedSQL
+		$key  = in_array( 'key', $cols, true ) ? '`key`' : ( in_array( 'step_key', $cols, true ) ? 'step_key' : '' );
+		$set  = in_array( 'settings', $cols, true ) ? 'settings' : '';
+		if ( ! $key || ! $set ) {
+			return array( 'found' => false, 'status' => '' );
+		}
+		$rows = $wpdb->get_results( "SELECT s.automation_id, s.{$set} AS settings, a.status FROM {$steps} s LEFT JOIN {$autos} a ON a.id = s.automation_id WHERE s.{$key} = 'post_published'" ); // phpcs:ignore WordPress.DB.PreparedSQL
+		foreach ( (array) $rows as $row ) {
+			$cfg = json_decode( (string) $row->settings, true );
+			if ( Issues::TYPE === ( $cfg['post_type'] ?? '' ) ) {
+				return array( 'found' => true, 'status' => (string) $row->status );
+			}
+		}
+		return array( 'found' => false, 'status' => '' );
+	}
+
+	/* ---------- registration and sanitizing ---------- */
+
 	public static function menu(): void {
-		add_options_page( 'MailerHive', 'MailerHive', 'manage_options', 'mailerhive', array( __CLASS__, 'screen' ) );
+		add_submenu_page( 'edit.php?post_type=' . Issues::TYPE, 'MailerHive Settings', 'Settings', 'manage_options', 'mailerhive', array( __CLASS__, 'screen' ) );
 	}
 
 	public static function register(): void {
@@ -110,62 +273,319 @@ final class Settings {
 	}
 
 	public static function sanitize( $in ): array {
-		$in  = is_array( $in ) ? $in : array();
+		$in  = is_array( $in ) ? wp_unslash( $in ) : array();
 		$out = self::all();
-		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'tagline', 'form_shortcode', 'rybbit_site_id' ) as $k ) {
+		$tab = sanitize_key( $in['_tab'] ?? '' );
+
+		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
-				$out[ $k ] = sanitize_text_field( wp_unslash( $in[ $k ] ) );
+				$out[ $k ] = sanitize_text_field( $in[ $k ] );
 			}
 		}
-		foreach ( array( 'rybbit_src', 'privacy_url' ) as $k ) {
+		foreach ( array( 'tagline', 'archive_intro', 'subscribe_facts', 'header_links', 'footer_links' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
-				$out[ $k ] = esc_url_raw( wp_unslash( $in[ $k ] ) );
+				$out[ $k ] = sanitize_textarea_field( $in[ $k ] );
 			}
+		}
+		foreach ( array( 'avatar_url', 'rybbit_src', 'privacy_url' ) as $k ) {
+			if ( isset( $in[ $k ] ) ) {
+				$out[ $k ] = esc_url_raw( $in[ $k ] );
+			}
+		}
+		if ( isset( $in['form_slug'] ) ) {
+			$out['form_slug'] = sanitize_title( $in['form_slug'] );
 		}
 		if ( isset( $in['landing_page_id'] ) ) {
 			$out['landing_page_id'] = absint( $in['landing_page_id'] );
 		}
-		if ( isset( $in['mirror_list_ids'] ) ) {
-			$out['mirror_list_ids'] = array_values( array_filter( array_map( 'absint', explode( ',', (string) $in['mirror_list_ids'] ) ) ) );
+		if ( isset( $in['issue_base'] ) ) {
+			$old               = self::issue_base();
+			$out['issue_base'] = $in['issue_base'];
+			$out['issue_base'] = implode( '/', array_filter( array_map( 'sanitize_title', explode( '/', trim( (string) $in['issue_base'], '/' ) ) ) ) ) ?: 'newsletter/issue';
+			if ( $out['issue_base'] !== $old ) {
+				update_option( self::FLUSH_FLAG, 1, false );
+			}
 		}
 		if ( isset( $in['internal_hosts'] ) ) {
-			$out['internal_hosts'] = array_values( array_filter( array_map( 'sanitize_text_field', preg_split( '/[\s,]+/', (string) wp_unslash( $in['internal_hosts'] ) ) ) ) );
+			$out['internal_hosts'] = array_values( array_filter( array_map( 'sanitize_text_field', preg_split( '/[\s,]+/', (string) $in['internal_hosts'] ) ) ) );
+		}
+		if ( isset( $in['color_scheme'] ) ) {
+			$out['color_scheme'] = in_array( $in['color_scheme'], array( 'auto', 'light', 'dark' ), true ) ? $in['color_scheme'] : 'auto';
+		}
+		foreach ( array( 'accent_light', 'accent_dark' ) as $k ) {
+			if ( isset( $in[ $k ] ) ) {
+				$out[ $k ] = sanitize_hex_color( $in[ $k ] ) ?: self::defaults()[ $k ];
+			}
+		}
+		if ( isset( $in['custom_css'] ) ) {
+			$out['custom_css'] = str_replace( '<', '', wp_strip_all_tags( (string) $in['custom_css'] ) );
+		}
+		if ( isset( $in['mirror_status'] ) ) {
+			$out['mirror_status'] = 'draft' === $in['mirror_status'] ? 'draft' : 'publish';
+		}
+		if ( 'mailerpress' === $tab ) {
+			$out['mirror_list_ids'] = array_values( array_filter( array_map( 'absint', (array) ( $in['mirror_list_ids'] ?? array() ) ) ) );
+		}
+		if ( isset( $in['head_html'] ) ) {
+			$out['head_html'] = current_user_can( 'unfiltered_html' ) ? (string) $in['head_html'] : wp_kses_post( (string) $in['head_html'] );
+		}
+		foreach ( self::CHECKBOXES[ $tab ] ?? array() as $k ) {
+			$out[ $k ] = ! empty( $in[ $k ] );
 		}
 		return $out;
 	}
+
+	/* ---------- tools ---------- */
+
+	public static function run_tool(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Not allowed.' );
+		}
+		check_admin_referer( 'mailerhive_tool' );
+		$tool = sanitize_key( $_POST['tool'] ?? '' );
+		$msg  = '';
+		switch ( $tool ) {
+			case 'sync':
+				$r   = MailerPress_Bridge::sync();
+				$msg = sprintf( 'Sync finished: %d campaign(s) linked, %d newsletter(s) published.', $r['linked'], $r['mirrored'] );
+				break;
+			case 'relink':
+				$msg = sprintf( 'Relinked %d issue(s).', Importer::relink() );
+				break;
+			case 'import':
+				$slugs = array_filter( array_map( 'sanitize_title', preg_split( '/[\s,]+/', (string) wp_unslash( $_POST['slugs'] ?? '' ) ) ) );
+				$pub   = sanitize_key( wp_unslash( $_POST['publication'] ?? 'gauravtiwari' ) );
+				$done  = array();
+				foreach ( $slugs as $slug ) {
+					$r      = Importer::substack( $slug, $pub );
+					$done[] = $slug . ': ' . $r['message'];
+				}
+				Importer::relink();
+				$msg = $done ? implode( ' · ', $done ) : 'No slugs given.';
+				break;
+			case 'flush':
+				flush_rewrite_rules( false );
+				$msg = 'Permalinks refreshed.';
+				break;
+			case 'seed':
+				self::seed();
+				$msg = 'Blank settings refilled from the site.';
+				break;
+		}
+		set_transient( 'mailerhive_notice_' . get_current_user_id(), $msg, 60 );
+		wp_safe_redirect( add_query_arg( 'tab', 'tools', self::url() ) );
+		exit;
+	}
+
+	/* ---------- screen ---------- */
 
 	public static function screen(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$s     = self::all();
-		$name  = self::OPTION;
-		$field = static function ( string $key, string $label, string $value, string $help = '' ) use ( $name ): void {
-			printf(
-				'<tr><th scope="row"><label for="mh-%1$s">%2$s</label></th><td><input class="regular-text" id="mh-%1$s" name="%3$s[%1$s]" value="%4$s">%5$s</td></tr>',
-				esc_attr( $key ),
-				esc_html( $label ),
-				esc_attr( $name ),
-				esc_attr( $value ),
-				$help ? '<p class="description">' . esc_html( $help ) . '</p>' : ''
-			);
-		};
-		echo '<div class="wrap"><h1>MailerHive</h1><form method="post" action="options.php">';
+		$tab = sanitize_key( $_GET['tab'] ?? 'general' ); // phpcs:ignore WordPress.Security.NonceVerification
+		$tab = isset( self::TABS[ $tab ] ) ? $tab : 'general';
+		$s   = self::all();
+
+		echo '<div class="wrap mailerhive-settings"><h1>MailerHive</h1>';
+		$notice = get_transient( 'mailerhive_notice_' . get_current_user_id() );
+		if ( $notice ) {
+			delete_transient( 'mailerhive_notice_' . get_current_user_id() );
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
+		}
+		settings_errors( 'mailerhive' );
+		echo '<nav class="nav-tab-wrapper">';
+		foreach ( self::TABS as $key => $label ) {
+			printf( '<a class="nav-tab%s" href="%s">%s</a>', $key === $tab ? ' nav-tab-active' : '', esc_url( add_query_arg( 'tab', $key, self::url() ) ), esc_html( $label ) );
+		}
+		echo '</nav>';
+
+		if ( 'tools' === $tab ) {
+			self::tools_tab();
+			echo '</div>';
+			return;
+		}
+
+		echo '<form method="post" action="options.php">';
 		settings_fields( 'mailerhive' );
+		printf( '<input type="hidden" name="%s[_tab]" value="%s">', esc_attr( self::OPTION ), esc_attr( $tab ) );
 		echo '<table class="form-table" role="presentation">';
-		$field( 'brand_name', 'Newsletter name', $s['brand_name'] );
-		$field( 'author_name', 'Sender name', $s['author_name'] );
-		$field( 'author_initials', 'Avatar initials', $s['author_initials'] );
-		$field( 'tagline', 'Tagline', $s['tagline'] );
-		$field( 'landing_page_id', 'Newsletter page ID', (string) $s['landing_page_id'], 'The signup page linked from every issue.' );
-		$field( 'form_shortcode', 'Signup form shortcode', $s['form_shortcode'] );
-		$field( 'mirror_list_ids', 'Mirror campaigns sent to list IDs', implode( ',', $s['mirror_list_ids'] ), 'Sent MailerPress newsletters to these lists are published as issue pages. Campaigns created from an issue are never mirrored twice.' );
-		$field( 'rybbit_src', 'Rybbit script URL', $s['rybbit_src'] );
-		$field( 'rybbit_site_id', 'Rybbit site ID', $s['rybbit_site_id'] );
-		$field( 'internal_hosts', 'Extra internal hosts', implode( ', ', $s['internal_hosts'] ), 'Links to any other host get rel="nofollow" on issue pages.' );
-		$field( 'privacy_url', 'Privacy policy URL', $s['privacy_url'] );
+		call_user_func( array( __CLASS__, 'tab_' . $tab ), $s );
 		echo '</table>';
 		submit_button();
 		echo '</form></div>';
+	}
+
+	private static function name( string $key ): string {
+		return self::OPTION . '[' . $key . ']';
+	}
+
+	private static function row( string $label, string $html, string $help = '', string $for = '' ): void {
+		printf(
+			'<tr><th scope="row">%s</th><td>%s%s</td></tr>',
+			$for ? '<label for="' . esc_attr( $for ) . '">' . esc_html( $label ) . '</label>' : esc_html( $label ),
+			$html, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
+			$help ? '<p class="description">' . wp_kses_post( $help ) . '</p>' : ''
+		);
+	}
+
+	private static function text( array $s, string $key, string $label, string $help = '', string $class = 'regular-text', string $type = 'text' ): void {
+		self::row( $label, sprintf( '<input type="%s" class="%s" id="mh-%s" name="%s" value="%s">', esc_attr( $type ), esc_attr( $class ), esc_attr( $key ), esc_attr( self::name( $key ) ), esc_attr( (string) $s[ $key ] ) ), $help, 'mh-' . $key );
+	}
+
+	private static function area( array $s, string $key, string $label, string $help = '', int $rows = 4, bool $code = false ): void {
+		self::row( $label, sprintf( '<textarea class="large-text%s" rows="%d" id="mh-%s" name="%s">%s</textarea>', $code ? ' code' : '', $rows, esc_attr( $key ), esc_attr( self::name( $key ) ), esc_textarea( is_array( $s[ $key ] ) ? implode( "\n", $s[ $key ] ) : (string) $s[ $key ] ) ), $help, 'mh-' . $key );
+	}
+
+	private static function check( array $s, string $key, string $label, string $text, string $help = '' ): void {
+		self::row( $label, sprintf( '<label><input type="checkbox" name="%s" value="1"%s> %s</label>', esc_attr( self::name( $key ) ), checked( ! empty( $s[ $key ] ), true, false ), esc_html( $text ) ), $help );
+	}
+
+	private static function select( array $s, string $key, string $label, array $options, string $help = '' ): void {
+		$html = sprintf( '<select id="mh-%s" name="%s">', esc_attr( $key ), esc_attr( self::name( $key ) ) );
+		foreach ( $options as $value => $text ) {
+			$html .= sprintf( '<option value="%s"%s>%s</option>', esc_attr( (string) $value ), selected( (string) $s[ $key ], (string) $value, false ), esc_html( $text ) );
+		}
+		self::row( $label, $html . '</select>', $help, 'mh-' . $key );
+	}
+
+	private static function tab_general( array $s ): void {
+		self::text( $s, 'brand_name', 'Newsletter name' );
+		self::text( $s, 'author_name', 'Sender name' );
+		self::text( $s, 'author_initials', 'Avatar initials', 'Shown in a coloured circle when no avatar image is set.', 'small-text' );
+		self::text( $s, 'avatar_url', 'Avatar image URL', 'Optional square image from the media library. Replaces the initials.', 'large-text', 'url' );
+		self::area( $s, 'tagline', 'Tagline', 'Used on the archive and in the subscribe box.', 2 );
+		self::row(
+			'Newsletter page',
+			wp_dropdown_pages(
+				array(
+					'name'              => self::name( 'landing_page_id' ),
+					'id'                => 'mh-landing_page_id',
+					'selected'          => (int) $s['landing_page_id'],
+					'show_option_none'  => '— None —',
+					'option_none_value' => 0,
+					'echo'              => 0,
+				)
+			),
+			'The signup page the header brand links to.',
+			'mh-landing_page_id'
+		);
+		$forms = array( '' => '— None —' ) + self::core_forms();
+		self::select( $s, 'form_slug', 'Signup form', $forms, 'The Core Forms form shown on issue pages and the archive. It must be registered with the site MailerPress consent policy, or signups fail closed.' );
+		self::text( $s, 'form_shortcode', 'Custom form shortcode', 'Optional. Overrides the form above, for example a different form plugin.', 'large-text code' );
+	}
+
+	private static function tab_issues( array $s ): void {
+		self::text( $s, 'issue_base', 'Issue URL base', 'Issues live at <code>' . esc_html( home_url( '/' . self::issue_base() . '/' ) ) . '{slug}/</code>. Changing this refreshes permalinks; old URLs are not redirected.', 'regular-text code' );
+		self::text( $s, 'archive_title', 'Archive title', 'Default: "{Newsletter name}: every issue".' );
+		self::area( $s, 'archive_intro', 'Archive intro', 'Default: the tagline.', 2 );
+		self::check( $s, 'show_subscribe', 'Subscribe box', 'Show the signup box under every issue and on the archive' );
+		self::text( $s, 'subscribe_heading', 'Subscribe heading', '', 'large-text' );
+		self::area( $s, 'subscribe_facts', 'Subscribe facts', 'One short fact per line, shown with dot bullets under the form.', 3 );
+		self::check( $s, 'show_pager', 'Issue navigation', 'Show previous and next issue links' );
+		self::check( $s, 'nofollow', 'External links', 'Add rel="nofollow noopener" to every external link in issues' );
+		self::check( $s, 'external_new_tab', 'Open externally', 'Open external links in a new tab' );
+		self::area( $s, 'internal_hosts', 'Extra internal hosts', 'Hosts treated as internal (no nofollow). The site and its subdomains are always internal. One per line.', 3 );
+	}
+
+	private static function tab_design( array $s ): void {
+		self::check( $s, 'detach_theme', 'Theme isolation', 'Detach theme styles, scripts and hooks on MailerHive pages', 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.' );
+		self::check( $s, 'shell_mailerpress_pages', 'Subscription pages', 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell' );
+		self::select( $s, 'color_scheme', 'Colour scheme', array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
+		self::text( $s, 'accent_light', 'Accent (light)', '', 'small-text', 'color' );
+		self::text( $s, 'accent_dark', 'Accent (dark)', 'Used for buttons and links on dark backgrounds.', 'small-text', 'color' );
+		self::area( $s, 'header_links', 'Header links', 'One per line as <code>Label | URL</code>. A Subscribe button is always added.', 3, true );
+		self::text( $s, 'footer_note', 'Footer note', '', 'large-text' );
+		self::area( $s, 'footer_links', 'Footer links', 'One per line as <code>Label | URL</code>.', 4, true );
+		self::text( $s, 'privacy_url', 'Privacy policy URL', '', 'large-text', 'url' );
+		self::area( $s, 'custom_css', 'Extra CSS', 'Loaded after MailerHive’s stylesheet on its pages only.', 6, true );
+	}
+
+	private static function tab_mailerpress( array $s ): void {
+		$lists = self::mailerpress_lists();
+		$wf    = self::workflow_status();
+		self::row(
+			'Publishing workflow',
+			$wf['found']
+				? '<strong>Found</strong>, status: <code>' . esc_html( $wf['status'] ?: 'unknown' ) . '</code>'
+				: '<strong>Not set up yet.</strong>',
+			'In MailerPress → Workflows, add a <em>Post Published</em> trigger filtered to <em>Newsletter Issues</em>, then a publication email in <strong>Draft</strong> mode. Each published issue then becomes a draft campaign to review and send. The email template must contain an unsubscribe or manage-subscription link.'
+		);
+		$boxes = '';
+		foreach ( $lists as $id => $name ) {
+			$boxes .= sprintf( '<label style="display:block;margin:.2em 0"><input type="checkbox" name="%s[]" value="%d"%s> %s</label>', esc_attr( self::name( 'mirror_list_ids' ) ), (int) $id, checked( in_array( (int) $id, array_map( 'intval', (array) $s['mirror_list_ids'] ), true ), true, false ), esc_html( $name ) );
+		}
+		self::check( $s, 'mirror_enabled', 'Mirror campaigns', 'Publish newsletters composed directly in MailerPress as issues once they are sent' );
+		self::row( 'Mirror lists', $boxes ?: 'MailerPress is not active.', 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.' );
+		self::select( $s, 'mirror_status', 'Mirrored issue status', array( 'publish' => 'Publish immediately', 'draft' => 'Save as draft for review' ) );
+		self::check( $s, 'redirect_web_view', 'View in browser', 'Send MailerPress "view in browser" links to the matching issue page' );
+		$mp = get_option( 'mailerpress_default_settings' );
+		$mp = is_string( $mp ) ? json_decode( $mp, true ) : $mp;
+		$fn = static function ( $page ) {
+			if ( empty( $page ) || ! empty( $page['useDefault'] ) || empty( $page['pageId'] ) ) {
+				return 'MailerPress default page';
+			}
+			return esc_html( get_the_title( (int) $page['pageId'] ) ) . ' (#' . (int) $page['pageId'] . ')';
+		};
+		self::row( 'Subscription pages', 'Unsubscribe: ' . $fn( $mp['unsubpage'] ?? null ) . '<br>Manage: ' . $fn( $mp['subpage'] ?? null ), 'Set in MailerPress → Settings. MailerHive renders them in its shell when enabled on the Design tab. Recipient links (<code>%UNSUB_LINK%</code>, <code>%MANAGE_SUB_LINK%</code>) and the List-Unsubscribe header are added by MailerPress on every send.' );
+	}
+
+	private static function tab_analytics( array $s ): void {
+		self::check( $s, 'rybbit_enabled', 'Rybbit', 'Load the Rybbit tracking script on MailerHive pages', 'The site’s Rybbit tag comes from the theme’s footer scripts, which theme isolation detaches, so MailerHive prints its own copy.' );
+		self::text( $s, 'rybbit_src', 'Script URL', '', 'large-text code', 'url' );
+		self::text( $s, 'rybbit_site_id', 'Site ID', '', 'regular-text code' );
+		self::area( $s, 'head_html', 'Extra head HTML', 'Optional tags printed in the &lt;head&gt; of MailerHive pages, such as another analytics or verification tag.', 4, true );
+	}
+
+	private static function tools_tab(): void {
+		$counts = array();
+		foreach ( get_posts( array( 'post_type' => Issues::TYPE, 'post_status' => array( 'publish', 'draft', 'future' ), 'posts_per_page' => -1, 'fields' => 'ids' ) ) as $id ) {
+			$src            = (string) get_post_meta( $id, Issues::META_SOURCE, true ) ?: 'wp';
+			$counts[ $src ] = ( $counts[ $src ] ?? 0 ) + 1;
+		}
+		$where = static function ( string $class ): string {
+			if ( ! class_exists( $class, false ) ) {
+				return '<span style="color:#b32d2e">not loaded</span>';
+			}
+			$file = wp_normalize_path( (string) ( new \ReflectionClass( $class ) )->getFileName() );
+			return str_contains( $file, '/plugins/mailerhive/' ) ? 'MailerHive' : 'old MU plugin';
+		};
+		$last = get_option( self::SYNC_OPTION, array() );
+		$next = wp_next_scheduled( MailerPress_Bridge::SYNC_HOOK );
+		$mpv  = defined( 'MAILERPRESS_VERSION' ) ? MAILERPRESS_VERSION : ( MailerPress_Bridge::available() ? 'active' : 'not active' );
+		$rows = array(
+			'MailerPress'                 => esc_html( (string) $mpv ),
+			'Consent policy module'       => $where( 'GT_Core_Forms_MailerPress_Policy' ),
+			'FluentCart lifecycle module' => $where( 'GT_MailerPress_FluentCart_Lifecycle' ),
+			'Issues'                      => $counts ? esc_html( implode( ', ', array_map( static fn( $k, $v ) => "{$v} {$k}", array_keys( $counts ), $counts ) ) ) : '0',
+			'Issue URLs'                  => '<code>' . esc_html( home_url( '/' . self::issue_base() . '/{slug}/' ) ) . '</code>',
+			'Last campaign sync'          => $last ? esc_html( sprintf( '%s: %d linked, %d published', wp_date( 'M j, Y H:i', (int) $last['time'] ), $last['linked'], $last['mirrored'] ) ) : 'never',
+			'Next scheduled sync'         => $next ? esc_html( wp_date( 'M j, Y H:i', $next ) ) : 'not scheduled',
+		);
+		echo '<h2>Status</h2><table class="widefat striped" style="max-width:820px"><tbody>';
+		foreach ( $rows as $k => $v ) {
+			echo '<tr><th style="width:240px">' . esc_html( $k ) . '</th><td>' . $v . '</td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
+		}
+		echo '</tbody></table>';
+
+		$button = static function ( string $tool, string $label, string $help, string $extra = '' ): void {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin:1em 0">';
+			wp_nonce_field( 'mailerhive_tool' );
+			echo '<input type="hidden" name="action" value="mailerhive_tool"><input type="hidden" name="tool" value="' . esc_attr( $tool ) . '">';
+			echo $extra; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup.
+			submit_button( $label, 'secondary', 'submit', false );
+			echo ' <span class="description">' . esc_html( $help ) . '</span></form>';
+		};
+		echo '<h2>Tools</h2>';
+		$button( 'sync', 'Sync MailerPress now', 'Link drafted campaigns to their issues and publish sent newsletters.' );
+		$button( 'relink', 'Relink imported issues', 'Point links between imported Substack issues at their local pages.' );
+		$button( 'flush', 'Refresh permalinks', 'Use after changing the issue URL base.' );
+		$button( 'seed', 'Re-detect settings', 'Fill blank settings from the site. Saved values are kept.' );
+		$button(
+			'import',
+			'Import from Substack',
+			'Images are copied into the media library. Already-imported posts are skipped.',
+			'<p><label>Publication subdomain <input name="publication" value="gauravtiwari" class="regular-text code"></label></p><p><label>Post slugs, one per line<br><textarea name="slugs" rows="4" class="large-text code"></textarea></label></p>'
+		);
 	}
 }

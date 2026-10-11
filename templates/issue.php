@@ -18,7 +18,7 @@ $neighbours = Issues::neighbours( $post );
 <main id="mh-main" class="mh-main">
 	<article class="mh-mail" aria-labelledby="mh-subject">
 		<div class="mh-mail__bar">
-			<span class="mh-mail__from"><span class="mh-avatar" aria-hidden="true"><?php echo esc_html( Settings::get( 'author_initials' ) ); ?></span><span><b><?php echo esc_html( Settings::get( 'author_name' ) ); ?></b> &middot; <?php echo esc_html( Settings::get( 'brand_name' ) ); ?></span></span>
+			<span class="mh-mail__from"><?php echo Shell::avatar( 32 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><b><?php echo esc_html( Settings::get( 'author_name' ) ); ?></b> &middot; <?php echo esc_html( Settings::get( 'brand_name' ) ); ?></span></span>
 			<time datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>"><?php echo esc_html( get_the_date( 'F j, Y' ) ); ?></time>
 		</div>
 		<header class="mh-mail__head">
@@ -32,7 +32,7 @@ $neighbours = Issues::neighbours( $post );
 		</div>
 	</article>
 
-	<?php if ( $neighbours['older'] || $neighbours['newer'] ) : ?>
+	<?php if ( Settings::on( 'show_pager' ) && ( $neighbours['older'] || $neighbours['newer'] ) ) : ?>
 	<nav class="mh-pager" aria-label="More issues">
 		<?php if ( $neighbours['older'] ) : ?>
 			<a class="mh-pager__link" href="<?php echo esc_url( get_permalink( $neighbours['older'] ) ); ?>" rel="prev"><small>Previous issue</small><span><?php echo esc_html( get_the_title( $neighbours['older'] ) ); ?></span></a>

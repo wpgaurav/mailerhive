@@ -59,6 +59,8 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mh-mail__from{display:inline-flex;align-items:center;gap:.6rem;font-size:var(--mh-t7);color:var(--mh-ink)}
 .mh-mail__from b{font-weight:600}
 .mh-mail__from .mh-avatar{width:32px;height:32px}
+.mh-avatar--img{object-fit:cover;background:none;padding:0}
+.mh-sub__cta{margin-top:1.5rem}
 .mh-mail__head{padding:clamp(1.75rem, 1.25rem + 2vw, 2.75rem) clamp(1.25rem, .75rem + 2vw, 2.75rem) 0}
 .mh-mail__subject{font-size:var(--mh-t1);font-weight:800;line-height:1.12;color:var(--mh-ink)}
 .mh-mail__dek{margin-top:.75rem;font-size:var(--mh-t4);line-height:1.55;color:var(--mh-muted)}

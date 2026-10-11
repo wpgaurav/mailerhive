@@ -27,8 +27,8 @@ foreach ( $issues as $issue ) {
 ?>
 <main id="mh-main" class="mh-main">
 	<header class="mh-archive__head">
-		<h1><?php echo esc_html( Settings::get( 'brand_name' ) ); ?>: every issue</h1>
-		<p><?php echo esc_html( Settings::get( 'tagline' ) ); ?></p>
+		<h1><?php echo esc_html( Settings::get( 'archive_title' ) ?: Settings::get( 'brand_name' ) . ': every issue' ); ?></h1>
+		<p><?php echo esc_html( Settings::get( 'archive_intro' ) ?: Settings::get( 'tagline' ) ); ?></p>
 	</header>
 
 	<?php if ( ! $issues ) : ?>

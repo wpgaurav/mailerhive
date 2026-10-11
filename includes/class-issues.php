@@ -10,7 +10,6 @@ defined( 'ABSPATH' ) || exit;
 
 final class Issues {
 	const TYPE = 'mh_issue';
-	const SLUG = 'newsletter/issue';
 
 	const META_SUBTITLE   = '_mh_subtitle';
 	const META_SOURCE     = '_mh_source';      // wp | substack | mailerpress
@@ -44,9 +43,9 @@ final class Issues {
 				'show_in_rest'        => true,
 				'menu_icon'           => 'dashicons-email-alt',
 				'menu_position'       => 26,
-				'has_archive'         => self::SLUG,
+				'has_archive'         => Settings::issue_base(),
 				'rewrite'             => array(
-					'slug'       => self::SLUG,
+					'slug'       => Settings::issue_base(),
 					'with_front' => false,
 					'feeds'      => true,
 					'pages'      => true,
