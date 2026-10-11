@@ -214,7 +214,13 @@ final class Shell {
 		if ( ! Settings::on( 'rybbit_enabled' ) || '' === $src || '' === $site ) {
 			return;
 		}
-		printf( '<script src="%s" data-site-id="%s" defer></script>' . "\n", esc_url( $src ), esc_attr( $site ) );
+		wp_print_script_tag(
+			array(
+				'src'          => esc_url( $src ),
+				'data-site-id' => $site,
+				'defer'        => true,
+			)
+		);
 	}
 
 	public static function template( string $template ): string {
@@ -291,7 +297,7 @@ final class Shell {
 			return;
 		}
 		$key = esc_js( (string) ( Settings::get( 'theme_storage_key' ) ?: 'mailerhive-theme' ) );
-		echo "<script id=\"mailerhive-theme-bootstrap\">!function(){try{var t=localStorage.getItem('{$key}');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}}();</script>\n";
+		wp_print_inline_script_tag( "!function(){try{var t=localStorage.getItem('{$key}');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}}();", array( 'id' => 'mailerhive-theme-bootstrap' ) );
 	}
 
 	public static function theme_toggle_script(): void {
@@ -301,7 +307,7 @@ final class Shell {
 		$key   = esc_js( (string) ( Settings::get( 'theme_storage_key' ) ?: 'mailerhive-theme' ) );
 		$light = esc_js( __( 'Switch to light mode', 'mailerhive' ) );
 		$dark  = esc_js( __( 'Switch to dark mode', 'mailerhive' ) );
-		echo "<script id=\"mailerhive-theme-toggle\">!function(){var d=document.documentElement,b=document.querySelector('.mh-theme'),m=window.matchMedia('(prefers-color-scheme: dark)');if(!b)return;function cur(){return d.getAttribute('data-theme')||(m.matches?'dark':'light')}function sync(){var c=cur();b.setAttribute('aria-pressed',c==='dark'?'true':'false');b.setAttribute('aria-label',c==='dark'?'{$light}':'{$dark}');b.setAttribute('title',b.getAttribute('aria-label'))}b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('{$key}',n)}catch(e){}sync()});m.addEventListener&&m.addEventListener('change',function(){sync()});sync()}();</script>\n";
+		wp_print_inline_script_tag( "!function(){var d=document.documentElement,b=document.querySelector('.mh-theme'),m=window.matchMedia('(prefers-color-scheme: dark)');if(!b)return;function cur(){return d.getAttribute('data-theme')||(m.matches?'dark':'light')}function sync(){var c=cur();b.setAttribute('aria-pressed',c==='dark'?'true':'false');b.setAttribute('aria-label',c==='dark'?'{$light}':'{$dark}');b.setAttribute('title',b.getAttribute('aria-label'))}b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('{$key}',n)}catch(e){}sync()});m.addEventListener&&m.addEventListener('change',function(){sync()});sync()}();", array( 'id' => 'mailerhive-theme-toggle' ) );
 	}
 
 	/** Pick an icon for a footer link from its URL. */

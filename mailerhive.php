@@ -39,14 +39,6 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mailerhive', 'MailerHive\\CLI' );
 }
 
-add_action(
-	'init',
-	static function (): void {
-		load_plugin_textdomain( 'mailerhive', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-	},
-	1
-);
-
 MailerHive\Settings::init();
 MailerHive\Issues::init();
 MailerHive\Links::init();

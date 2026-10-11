@@ -12,6 +12,8 @@ namespace MailerHive;
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- MailerPress and Core Forms keep their data in custom tables without a public read API; table names come from $wpdb->prefix and values are prepared.
+
 final class Email {
 	public static function init(): void {
 		add_action( 'wp_after_insert_post', array( __CLASS__, 'on_publish' ), 20, 4 );

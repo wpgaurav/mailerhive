@@ -13,6 +13,8 @@ namespace MailerHive\Modules;
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- MailerPress and Core Forms keep their data in custom tables without a public read API; table names come from $wpdb->prefix and values are prepared.
+
 
 final class Consent_Policy {
     const OPTION = 'mailerhive_consent_policy';

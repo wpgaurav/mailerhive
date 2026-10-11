@@ -9,6 +9,8 @@ namespace MailerHive;
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- MailerPress and Core Forms keep their data in custom tables without a public read API; table names come from $wpdb->prefix and values are prepared.
+
 final class Settings {
 	const OPTION      = 'mailerhive_settings';
 	const SYNC_OPTION = 'mailerhive_last_sync';
@@ -414,7 +416,7 @@ final class Settings {
 			wp_die( 'Not allowed.' );
 		}
 		check_admin_referer( 'mailerhive_tool' );
-		$tool = sanitize_key( $_REQUEST['tool'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification -- checked above.
+		$tool = sanitize_key( wp_unslash( $_REQUEST['tool'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification -- checked above.
 		$msg  = '';
 		$back = 'tools';
 		switch ( $tool ) {
@@ -619,7 +621,7 @@ final class Settings {
 		self::text( $s, 'archive_title', __( 'Archive title', 'mailerhive' ), __( 'Default: "{Newsletter name}: every issue".', 'mailerhive' ) );
 		self::area( $s, 'archive_intro', __( 'Archive intro', 'mailerhive' ), __( 'Default: the tagline.', 'mailerhive' ), 2 );
 		self::check( $s, 'show_subscribe', __( 'Subscribe box', 'mailerhive' ), __( 'Show the signup box under every issue and on the archive', 'mailerhive' ) );
-		self::text( $s, 'subscribe_heading', __( 'Subscribe heading', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text' );
+		self::text( $s, 'subscribe_heading', __( 'Subscribe heading', 'mailerhive' ), '', 'large-text' );
 		self::area( $s, 'subscribe_facts', __( 'Subscribe facts', 'mailerhive' ), __( 'One short fact per line, shown with dot bullets under the form.', 'mailerhive' ), 3 );
 		self::check( $s, 'show_pager', __( 'Issue navigation', 'mailerhive' ), __( 'Show previous and next issue links', 'mailerhive' ) );
 		self::check( $s, 'nofollow', __( 'External links', 'mailerhive' ), __( 'Add rel="nofollow noopener" to every external link in issues', 'mailerhive' ) );
@@ -632,12 +634,12 @@ final class Settings {
 		self::check( $s, 'shell_mailerpress_pages', __( 'Subscription pages', 'mailerhive' ), __( 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell', 'mailerhive' ) );
 		self::select( $s, 'color_scheme', __( 'Color scheme', 'mailerhive' ), array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
 		self::check( $s, 'show_theme_toggle', __( 'Theme toggle', 'mailerhive' ), __( 'Show a light/dark toggle in the header', 'mailerhive' ), __( 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.', 'mailerhive' ) );
-		self::text( $s, 'accent_light', __( 'Accent (light)', 'mailerhive' ), __( '', 'mailerhive' ), 'small-text', 'color' );
+		self::text( $s, 'accent_light', __( 'Accent (light)', 'mailerhive' ), '', 'small-text', 'color' );
 		self::text( $s, 'accent_dark', __( 'Accent (dark)', 'mailerhive' ), __( 'Used for buttons and links on dark backgrounds.', 'mailerhive' ), 'small-text', 'color' );
 		self::area( $s, 'header_links', __( 'Header links', 'mailerhive' ), __( 'One per line as <code>Label | URL</code>. A Subscribe button is always added.', 'mailerhive' ), 3, true );
-		self::text( $s, 'footer_note', __( 'Footer note', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text' );
+		self::text( $s, 'footer_note', __( 'Footer note', 'mailerhive' ), '', 'large-text' );
 		self::area( $s, 'footer_links', __( 'Footer links', 'mailerhive' ), __( 'One per line as <code>Label | URL</code>.', 'mailerhive' ), 4, true );
-		self::text( $s, 'privacy_url', __( 'Privacy policy URL', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text', 'url' );
+		self::text( $s, 'privacy_url', __( 'Privacy policy URL', 'mailerhive' ), '', 'large-text', 'url' );
 		self::area( $s, 'custom_css', __( 'Extra CSS', 'mailerhive' ), __( 'Loaded after MailerHive’s stylesheet on its pages only.', 'mailerhive' ), 6, true );
 	}
 
@@ -656,7 +658,7 @@ final class Settings {
 			? '<strong style="color:#008a20">On.</strong> Publishing a new issue creates a draft campaign in MailerPress automatically.'
 			: '<strong>Off.</strong> Turn it on to get a ready-to-review MailerPress draft every time you publish an issue.';
 		self::row( __( 'One-click email drafts', 'mailerhive' ), $state . self::tool_button_html( Settings::on( 'auto_draft' ) ? 'disable_auto_draft' : 'enable_auto_draft', Settings::on( 'auto_draft' ) ? 'Turn off' : 'Turn on automatic drafts', Settings::on( 'auto_draft' ) ? 'secondary' : 'primary' ) . self::tool_button_html( 'draft_latest', 'Create a draft for the latest issue', 'secondary' ), __( 'Drafts are never scheduled or sent. Open MailerPress → Campaigns to review and send. Every draft includes Unsubscribe and Manage subscription links, which MailerPress fills in per recipient. No MailerPress Automation is needed.', 'mailerhive' ) );
-		echo '<tr><td colspan="2" style="padding:0"><input type="hidden" name="' . esc_attr( self::name( 'auto_draft' ) ) . '" value="' . ( Settings::on( 'auto_draft' ) ? '1' : '' ) . '"></td></tr>';
+		echo '<tr><td colspan="2" style="padding:0"><input type="hidden" name="' . esc_attr( self::name( 'auto_draft' ) ) . '" value="' . esc_attr( Settings::on( 'auto_draft' ) ? '1' : '' ) . '"></td></tr>';
 		self::row( __( 'Send drafts to', 'mailerhive' ), self::list_boxes( $s, 'draft_list_ids', $lists ), __( 'Leave empty to use the mirror lists below.', 'mailerhive' ) );
 		self::text( $s, 'subject_template', __( 'Subject line', 'mailerhive' ), __( 'Placeholders: <code>{title}</code>, <code>{newsletter}</code>.', 'mailerhive' ), 'regular-text' );
 		self::text( $s, 'sender_name', __( 'From name', 'mailerhive' ), 'Default from MailerPress: ' . esc_html( $sender['name'] ) . '.' );
@@ -686,8 +688,8 @@ final class Settings {
 
 	private static function tab_analytics( array $s ): void {
 		self::check( $s, 'rybbit_enabled', __( 'Rybbit', 'mailerhive' ), __( 'Load the Rybbit tracking script on MailerHive pages', 'mailerhive' ), __( 'The site’s Rybbit tag comes from the theme’s footer scripts, which theme isolation detaches, so MailerHive prints its own copy.', 'mailerhive' ) );
-		self::text( $s, 'rybbit_src', __( 'Script URL', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text code', 'url' );
-		self::text( $s, 'rybbit_site_id', __( 'Site ID', 'mailerhive' ), __( '', 'mailerhive' ), 'regular-text code' );
+		self::text( $s, 'rybbit_src', __( 'Script URL', 'mailerhive' ), '', 'large-text code', 'url' );
+		self::text( $s, 'rybbit_site_id', __( 'Site ID', 'mailerhive' ), '', 'regular-text code' );
 		self::area( $s, 'head_html', __( 'Extra head HTML', 'mailerhive' ), __( 'Optional tags printed in the &lt;head&gt; of MailerHive pages, such as another analytics or verification tag.', 'mailerhive' ), 4, true );
 	}
 

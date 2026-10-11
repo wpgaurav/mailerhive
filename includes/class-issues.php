@@ -190,7 +190,8 @@ final class Issues {
 		);
 		echo '<p>Source: ' . esc_html( $source ? $source : 'wp' ) . '</p>';
 		if ( $campaign ) {
-			printf( '<p><a class="button" href="%s">Open MailerPress campaign #%d</a></p>', esc_url( Email::edit_url( $campaign ) ), $campaign );
+			/* translators: %d: campaign ID */
+			printf( '<p><a class="button" href="%s">%s</a></p>', esc_url( Email::edit_url( $campaign ) ), esc_html( sprintf( __( 'Open MailerPress campaign #%d', 'mailerhive' ), $campaign ) ) );
 		} elseif ( 'publish' === $post->post_status ) {
 			$url = wp_nonce_url( add_query_arg( array( 'action' => 'mailerhive_draft', 'post' => $post->ID ), admin_url( 'admin-post.php' ) ), 'mailerhive_draft_' . $post->ID );
 			printf( '<p><a class="button button-primary" href="%s">Create MailerPress draft</a></p><p class="description">Creates a draft campaign to review and send. Nothing is sent automatically.</p>', esc_url( $url ) );
@@ -224,7 +225,7 @@ final class Issues {
 			$campaign = (int) get_post_meta( $post_id, self::META_CAMPAIGN, true );
 			echo esc_html( (string) get_post_meta( $post_id, self::META_SOURCE, true ) ?: 'wp' );
 			if ( $campaign ) {
-				echo ' &middot; campaign #' . (int) $campaign;
+				echo ' &middot; campaign #' . esc_html( (string) (int) $campaign );
 			}
 		}
 	}
