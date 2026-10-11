@@ -428,7 +428,7 @@ final class Settings {
 				$msg = sprintf( 'Relinked %d issue(s).', Importer::relink() );
 				break;
 			case 'import':
-				$slugs = array_filter( array_map( 'sanitize_title', preg_split( '/[\s,]+/', (string) wp_unslash( $_POST['slugs'] ?? '' ) ) ) );
+				$slugs = array_filter( array_map( 'sanitize_title', preg_split( '/[\s,]+/', sanitize_textarea_field( wp_unslash( $_POST['slugs'] ?? '' ) ) ) ) );
 				$pub   = sanitize_key( wp_unslash( $_POST['publication'] ?? '' ) );
 				if ( '' === $pub ) {
 					$msg = __( 'Enter the Substack publication subdomain.', 'mailerhive' );
@@ -599,7 +599,7 @@ final class Settings {
 			'Newsletter page',
 			wp_dropdown_pages(
 				array(
-					'name'              => self::name( 'landing_page_id' ),
+					'name'              => self::name( 'landing_page_id' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_dropdown_pages() escapes its output.
 					'id'                => 'mh-landing_page_id',
 					'selected'          => (int) $s['landing_page_id'],
 					'show_option_none'  => '— None —',

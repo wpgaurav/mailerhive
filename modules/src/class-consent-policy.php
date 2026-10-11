@@ -157,7 +157,7 @@ final class Consent_Policy {
 
     public static function explain($settings, $index): void {
         $policy = get_option(self::OPTION, []);
-        $rule = $policy['forms'][(string)absint($_GET['form_id'] ?? 0)] ?? null;
+        $rule = $policy['forms'][(string)absint($_GET['form_id'] ?? 0)] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice.
         echo '<p class="description">' . esc_html($rule
             ? 'Site policy: explicit newsletter consent is required. Existing opt-outs are preserved. Confirmation and live-test sending are disabled. Changes to this action require site route review.'
             : 'This MailerPress action needs a reviewed site consent route before it can capture contacts.') . '</p>';
