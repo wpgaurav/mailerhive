@@ -26,6 +26,7 @@ require_once MAILERHIVE_DIR . 'includes/class-importer.php';
 require_once MAILERHIVE_DIR . 'includes/class-links.php';
 require_once MAILERHIVE_DIR . 'includes/class-shell.php';
 require_once MAILERHIVE_DIR . 'includes/class-mailerpress-bridge.php';
+require_once MAILERHIVE_DIR . 'includes/class-email.php';
 
 // Modules moved from site MU plugins. Each guards against a still-present MU copy.
 require_once MAILERHIVE_DIR . 'modules/consent-policy.php';
@@ -42,6 +43,7 @@ MailerHive\Issues::init();
 MailerHive\Links::init();
 MailerHive\Shell::init();
 MailerHive\MailerPress_Bridge::init();
+MailerHive\Email::init();
 
 register_activation_hook(
 	__FILE__,

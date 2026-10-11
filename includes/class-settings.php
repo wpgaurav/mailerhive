@@ -18,7 +18,7 @@ final class Settings {
 	const CHECKBOXES = array(
 		'issues'      => array( 'show_subscribe', 'show_pager', 'nofollow', 'external_new_tab' ),
 		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle' ),
-		'mailerpress' => array( 'mirror_enabled', 'redirect_web_view' ),
+		'mailerpress' => array( 'auto_draft', 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
 	);
 
@@ -74,6 +74,12 @@ final class Settings {
 			'privacy_url'             => '',
 			'custom_css'              => '',
 			// MailerPress.
+			'auto_draft'              => false,
+			'draft_list_ids'          => array(),
+			'sender_name'             => '',
+			'sender_email'            => '',
+			'subject_template'        => '{title}',
+			'email_footer'            => 'You get this because you subscribed to From the Workbench at gauravtiwari.org.',
 			'mirror_enabled'          => true,
 			'mirror_list_ids'         => array(),
 			'mirror_status'           => 'publish',
@@ -241,30 +247,6 @@ final class Settings {
 		return $out;
 	}
 
-	/** Does a MailerPress "Post Published" workflow target the issue post type? */
-	public static function workflow_status(): array {
-		global $wpdb;
-		$steps = $wpdb->prefix . 'mailerpress_automations_steps';
-		$autos = $wpdb->prefix . 'mailerpress_automations';
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $steps ) ) !== $steps ) {
-			return array( 'found' => false, 'status' => '' );
-		}
-		$cols = $wpdb->get_col( "SHOW COLUMNS FROM {$steps}" ); // phpcs:ignore WordPress.DB.PreparedSQL
-		$key  = in_array( 'key', $cols, true ) ? '`key`' : ( in_array( 'step_key', $cols, true ) ? 'step_key' : '' );
-		$set  = in_array( 'settings', $cols, true ) ? 'settings' : '';
-		if ( ! $key || ! $set ) {
-			return array( 'found' => false, 'status' => '' );
-		}
-		$rows = $wpdb->get_results( "SELECT s.automation_id, s.{$set} AS settings, a.status FROM {$steps} s LEFT JOIN {$autos} a ON a.id = s.automation_id WHERE s.{$key} = 'post_published'" ); // phpcs:ignore WordPress.DB.PreparedSQL
-		foreach ( (array) $rows as $row ) {
-			$cfg = json_decode( (string) $row->settings, true );
-			if ( Issues::TYPE === ( $cfg['post_type'] ?? '' ) ) {
-				return array( 'found' => true, 'status' => (string) $row->status );
-			}
-		}
-		return array( 'found' => false, 'status' => '' );
-	}
-
 	/* ---------- registration and sanitizing ---------- */
 
 	public static function menu(): void {
@@ -287,7 +269,7 @@ final class Settings {
 		$out = self::all();
 		$tab = sanitize_key( $in['_tab'] ?? '' );
 
-		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode', 'byline', 'sender_line', 'subscribe_label' ) as $k ) {
+		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode', 'byline', 'sender_line', 'subscribe_label', 'sender_name', 'subject_template', 'email_footer' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( $in[ $k ] );
 			}
@@ -346,6 +328,10 @@ final class Settings {
 		}
 		if ( 'mailerpress' === $tab ) {
 			$out['mirror_list_ids'] = array_values( array_filter( array_map( 'absint', (array) ( $in['mirror_list_ids'] ?? array() ) ) ) );
+			$out['draft_list_ids']  = array_values( array_filter( array_map( 'absint', (array) ( $in['draft_list_ids'] ?? array() ) ) ) );
+		}
+		if ( isset( $in['sender_email'] ) ) {
+			$out['sender_email'] = sanitize_email( $in['sender_email'] );
 		}
 		if ( isset( $in['head_html'] ) ) {
 			$out['head_html'] = current_user_can( 'unfiltered_html' ) ? (string) $in['head_html'] : wp_kses_post( (string) $in['head_html'] );
@@ -363,8 +349,9 @@ final class Settings {
 			wp_die( 'Not allowed.' );
 		}
 		check_admin_referer( 'mailerhive_tool' );
-		$tool = sanitize_key( $_POST['tool'] ?? '' );
+		$tool = sanitize_key( $_REQUEST['tool'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification -- checked above.
 		$msg  = '';
+		$back = 'tools';
 		switch ( $tool ) {
 			case 'sync':
 				$r   = MailerPress_Bridge::sync();
@@ -392,9 +379,28 @@ final class Settings {
 				self::seed();
 				$msg = 'Blank settings refilled from the site.';
 				break;
+			case 'enable_auto_draft':
+			case 'disable_auto_draft':
+				$all               = self::all();
+				$all['auto_draft'] = 'enable_auto_draft' === $tool;
+				update_option( self::OPTION, $all, false );
+				$msg  = $all['auto_draft'] ? 'Automatic drafts are on. The next issue you publish becomes a MailerPress draft.' : 'Automatic drafts are off.';
+				$back = 'mailerpress';
+				break;
+			case 'draft_latest':
+				$latest = get_posts( array( 'post_type' => Issues::TYPE, 'post_status' => 'publish', 'posts_per_page' => 1, 'orderby' => 'date', 'order' => 'DESC' ) );
+				$r      = $latest ? Email::create_draft( (int) $latest[0]->ID ) : array( 'message' => 'There is no published issue yet.', 'campaign_id' => 0 );
+				$msg    = $r['message'];
+				$back   = 'mailerpress';
+				if ( ! empty( $r['campaign_id'] ) ) {
+					set_transient( 'mailerhive_notice_' . get_current_user_id(), $msg, 60 );
+					wp_safe_redirect( Email::edit_url( (int) $r['campaign_id'] ) );
+					exit;
+				}
+				break;
 		}
 		set_transient( 'mailerhive_notice_' . get_current_user_id(), $msg, 60 );
-		wp_safe_redirect( add_query_arg( 'tab', 'tools', self::url() ) );
+		wp_safe_redirect( add_query_arg( 'tab', $back, self::url() ) );
 		exit;
 	}
 
@@ -562,22 +568,30 @@ final class Settings {
 		self::area( $s, 'custom_css', 'Extra CSS', 'Loaded after MailerHive’s stylesheet on its pages only.', 6, true );
 	}
 
-	private static function tab_mailerpress( array $s ): void {
-		$lists = self::mailerpress_lists();
-		$wf    = self::workflow_status();
-		self::row(
-			'Publishing workflow',
-			$wf['found']
-				? '<strong>Found</strong>, status: <code>' . esc_html( $wf['status'] ?: 'unknown' ) . '</code>'
-				: '<strong>Not set up yet.</strong>',
-			'In MailerPress → Workflows, add a <em>Post Published</em> trigger filtered to <em>Newsletter Issues</em>, then a publication email in <strong>Draft</strong> mode. Each published issue then becomes a draft campaign to review and send. The email template must contain an unsubscribe or manage-subscription link.'
-		);
+	private static function list_boxes( array $s, string $key, array $lists ): string {
 		$boxes = '';
 		foreach ( $lists as $id => $name ) {
-			$boxes .= sprintf( '<label style="display:block;margin:.2em 0"><input type="checkbox" name="%s[]" value="%d"%s> %s</label>', esc_attr( self::name( 'mirror_list_ids' ) ), (int) $id, checked( in_array( (int) $id, array_map( 'intval', (array) $s['mirror_list_ids'] ), true ), true, false ), esc_html( $name ) );
+			$boxes .= sprintf( '<label style="display:block;margin:.2em 0"><input type="checkbox" name="%s[]" value="%d"%s> %s</label>', esc_attr( self::name( $key ) ), (int) $id, checked( in_array( (int) $id, array_map( 'intval', (array) $s[ $key ] ), true ), true, false ), esc_html( $name ) );
 		}
+		return $boxes ?: 'MailerPress is not active.';
+	}
+
+	private static function tab_mailerpress( array $s ): void {
+		$lists  = self::mailerpress_lists();
+		$sender = Email::sender();
+		$state  = Settings::on( 'auto_draft' )
+			? '<strong style="color:#008a20">On.</strong> Publishing a new issue creates a draft campaign in MailerPress automatically.'
+			: '<strong>Off.</strong> Turn it on to get a ready-to-review MailerPress draft every time you publish an issue.';
+		self::row( 'One-click email drafts', $state . self::tool_button_html( Settings::on( 'auto_draft' ) ? 'disable_auto_draft' : 'enable_auto_draft', Settings::on( 'auto_draft' ) ? 'Turn off' : 'Turn on automatic drafts', Settings::on( 'auto_draft' ) ? 'secondary' : 'primary' ) . self::tool_button_html( 'draft_latest', 'Create a draft for the latest issue', 'secondary' ), 'Drafts are never scheduled or sent. Open MailerPress → Campaigns to review and send. Every draft includes Unsubscribe and Manage subscription links, which MailerPress fills in per recipient. No MailerPress Automation is needed.' );
+		echo '<tr><td colspan="2" style="padding:0"><input type="hidden" name="' . esc_attr( self::name( 'auto_draft' ) ) . '" value="' . ( Settings::on( 'auto_draft' ) ? '1' : '' ) . '"></td></tr>';
+		self::row( 'Send drafts to', self::list_boxes( $s, 'draft_list_ids', $lists ), 'Leave empty to use the mirror lists below.' );
+		self::text( $s, 'subject_template', 'Subject line', 'Placeholders: <code>{title}</code>, <code>{newsletter}</code>.', 'regular-text' );
+		self::text( $s, 'sender_name', 'From name', 'Default from MailerPress: ' . esc_html( $sender['name'] ) . '.' );
+		self::text( $s, 'sender_email', 'From email', 'Default from MailerPress: ' . esc_html( $sender['email'] ) . '.', 'regular-text', 'email' );
+		self::text( $s, 'email_footer', 'Email footer note', 'Shown above the Unsubscribe and Manage subscription links.', 'large-text' );
+		self::heading( 'Campaigns written in MailerPress' );
 		self::check( $s, 'mirror_enabled', 'Mirror campaigns', 'Publish newsletters composed directly in MailerPress as issues once they are sent' );
-		self::row( 'Mirror lists', $boxes ?: 'MailerPress is not active.', 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.' );
+		self::row( 'Mirror lists', self::list_boxes( $s, 'mirror_list_ids', $lists ), 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.' );
 		self::select( $s, 'mirror_status', 'Mirrored issue status', array( 'publish' => 'Publish immediately', 'draft' => 'Save as draft for review' ) );
 		self::check( $s, 'redirect_web_view', 'View in browser', 'Send MailerPress "view in browser" links to the matching issue page' );
 		$mp = get_option( 'mailerpress_default_settings' );
@@ -588,7 +602,13 @@ final class Settings {
 			}
 			return esc_html( get_the_title( (int) $page['pageId'] ) ) . ' (#' . (int) $page['pageId'] . ')';
 		};
-		self::row( 'Subscription pages', 'Unsubscribe: ' . $fn( $mp['unsubpage'] ?? null ) . '<br>Manage: ' . $fn( $mp['subpage'] ?? null ), 'Set in MailerPress → Settings. MailerHive renders them in its shell when enabled on the Design tab. Recipient links (<code>%UNSUB_LINK%</code>, <code>%MANAGE_SUB_LINK%</code>) and the List-Unsubscribe header are added by MailerPress on every send.' );
+		self::row( 'Subscription pages', 'Unsubscribe: ' . $fn( $mp['unsubpage'] ?? null ) . '<br>Manage: ' . $fn( $mp['subpage'] ?? null ), 'Set in MailerPress → Settings. MailerHive renders them in its shell when enabled on the Design tab.' );
+	}
+
+	/** A tool button rendered inside the settings form (submits to admin-post via formaction). */
+	private static function tool_button_html( string $tool, string $label, string $class ): string {
+		$url = wp_nonce_url( add_query_arg( array( 'action' => 'mailerhive_tool', 'tool' => $tool ), admin_url( 'admin-post.php' ) ), 'mailerhive_tool' );
+		return ' <p style="margin:.6em 0 0"><a class="button button-' . esc_attr( $class ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a></p>';
 	}
 
 	private static function tab_analytics( array $s ): void {
