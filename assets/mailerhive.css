@@ -199,7 +199,7 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 
 /* ---------- mobile: no brand in the header, tighter gutters ---------- */
 @media (max-width:640px){
-  .mh-brand{display:none}
+  .mailerhive .mh-brand{display:none}
   .mh-top__in{padding:.6rem 12px}
   .mh-nav{flex:1;justify-content:space-between;gap:.5rem}
   .mh-nav__end{gap:.5rem}
