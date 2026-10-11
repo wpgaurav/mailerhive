@@ -11,3 +11,5 @@ delete_option( 'mailerhive_last_sync' );
 delete_option( 'mailerhive_flush_rewrites' );
 wp_clear_scheduled_hook( 'mailerhive_sync_campaigns' );
 wp_clear_scheduled_hook( 'mailerhive_fc_abandoned_sweep' );
+wp_clear_scheduled_hook( 'mailerhive_paid_sweep' );
+// The mailerhive_members table is kept: it records what readers paid for.

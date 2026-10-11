@@ -4,7 +4,7 @@ Tags: newsletter, mailerpress, email archive, substack import, beehiiv
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,7 @@ Optional modules (off by default):
 * **Consent policy** for Core Forms → MailerPress signups: only reviewed forms with an exact consent disclosure can add contacts; opt-outs and suppression tags are always respected; consent evidence is stored on the contact.
 * **FluentCart lifecycle tags**: purchase, refund and abandoned-checkout tags, plus category-based interest tags.
 * **Rich paste** in the MailerPress editor for Google Docs and block-editor content.
+* **Paid subscriptions** sold through FluentCart: tiers ordered lowest to highest, each with its own MailerPress list. Recurring plans follow the FluentCart subscription (renewals, failed payments with a grace period, cancellations that run to the end of the paid period, pauses, refunds); one-time plans give a fixed term that stacks on renewal, or lifetime access. Paid issues show a preview and the plans; members read in full after signing in or through an emailed one-time reading link. Drafts for paid issues go to the matching tier lists. Turning the module on starts you with a Free tier (your existing lists and signup form) and a Paid tier; "Create FluentCart product" on any tier builds a published product with monthly, yearly and optional lifetime prices and maps them in one click. Includes a Paid members screen with manual grants, `[mailerhive_plans]` and `[mailerhive_account]`.
 
 MailerHive works without MailerPress for the archive and reading pages; email features need MailerPress.
 
@@ -56,8 +57,12 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
     wp mailerhive relink
     wp mailerhive sync
     wp mailerhive seed
+    wp mailerhive paid members|reconcile|sweep|grant|revoke|access [<args>]
 
 == Changelog ==
+
+= 1.4.0 =
+* Paid subscriptions module: sell tiered newsletter access through FluentCart, with default Free and Paid tiers, one-click FluentCart products, subscription, fixed-term and lifetime plans, a paywall with plans and reading links, tier lists and tags in MailerPress, a Paid members screen, and `wp mailerhive paid`.
 
 = 1.3.0 =
 * License tab: activate a free license for automatic updates from gauravtiwari.org. Keys are encrypted and bound to the site.

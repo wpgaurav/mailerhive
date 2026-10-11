@@ -244,3 +244,49 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mh-prose summary:hover{background:var(--mh-tint)}
 .mh-prose details > :not(summary){margin:0;padding:14px 20px 18px}
 @media (max-width:640px){.mh-hero__body{padding-left:18px;padding-right:18px}.mh-recent__all{padding:.75rem 14px}}
+
+/* paid issues: lock badge, paywall, plans */
+.mh-badge{display:inline-flex;align-items:center;gap:.3rem;margin-left:.5rem;padding:.1rem .5rem;border:1px solid color-mix(in srgb,var(--mh-accent) 40%,var(--mh-line));border-radius:999px;font-size:var(--mh-t8);font-weight:600;font-style:normal;line-height:1.5;color:var(--mh-accent);vertical-align:middle;white-space:nowrap}
+.mh-badge .mh-icon{width:12px;height:12px}
+.mh-paywall{position:relative;margin-top:2rem}
+.mh-paywall::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:7rem;background:linear-gradient(to bottom,color-mix(in srgb,var(--mh-card) 0%,transparent),var(--mh-card));pointer-events:none}
+.mh-prose > .mh-paywall{margin-top:2rem}
+.mh-paywall__card,.mh-plans__in{text-align:center}
+.mh-paywall__card{padding:clamp(1.5rem, 1rem + 2vw, 2.25rem) 0 0;border-top:1px solid var(--mh-line)}
+.mh-paywall .mh-sub__icon,.mh-plans .mh-sub__icon{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:999px;background:var(--mh-tint);color:var(--mh-accent)}
+.mh-paywall .mh-sub__icon .mh-icon,.mh-plans .mh-sub__icon .mh-icon{width:24px;height:24px}
+.mh-prose .mh-paywall h2,.mh-plans h2{margin:.9rem 0 0;font-size:var(--mh-t2);font-weight:800;line-height:1.2;color:var(--mh-ink)}
+.mh-paywall__intro{max-width:34rem;margin:.6rem auto 0;font-size:var(--mh-t5);line-height:1.55;color:var(--mh-muted);font-style:italic}
+.mh-paywall__note{margin:.75rem auto 0;font-size:var(--mh-t7);color:var(--mh-muted)}
+.mh-tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem;margin:1.5rem 0 0;text-align:left}
+.mh-tier{display:flex;flex-direction:column;padding:1.15rem;background:var(--mh-paper);border:1px solid var(--mh-line);border-radius:12px}
+.mh-prose .mh-tier__name,.mh-tier__name{margin:0;font-size:var(--mh-t4);font-weight:700;color:var(--mh-ink)}
+.mh-tier__desc{margin:.4rem 0 0;font-size:var(--mh-t7);line-height:1.55;color:var(--mh-muted)}
+.mh-prose .mh-tier__plans,.mh-tier__plans{display:grid;gap:.5rem;margin:auto 0 0;padding:1rem 0 0;list-style:none}
+.mh-prose .mh-tier__plans li + li{margin-top:0}
+.mailerhive .mh-plan{display:grid;grid-template-columns:1fr auto;grid-template-areas:"name go" "price go";align-items:center;gap:0 .75rem;min-height:56px;padding:.6rem .85rem;background:var(--mh-card);border:1px solid var(--mh-line);border-radius:8px;color:var(--mh-ink);text-decoration:none;transition:border-color .22s var(--mh-ease)}
+.mailerhive .mh-plan:hover{border-color:var(--mh-accent);color:var(--mh-ink)}
+.mh-plan__name{grid-area:name;font-size:var(--mh-t7);font-weight:600}
+.mh-plan__price{grid-area:price;font-size:var(--mh-t7);color:var(--mh-muted)}
+.mh-plan__price b{font-weight:700;color:var(--mh-ink)}
+.mh-plan__go{grid-area:go;display:inline-grid;place-items:center;width:32px;height:32px;border-radius:999px;background:var(--mh-accent);color:var(--mh-accent-ink)}
+.mh-plan__go .mh-icon{width:16px;height:16px}
+.mh-paywall__login{margin:1.5rem 0 0;text-align:left}
+.mh-prose .mh-paywall__login{background:none;border:0}
+.mh-paywall__login summary{justify-content:center;min-height:44px;font-size:var(--mh-t7);font-weight:600;color:var(--mh-accent);cursor:pointer}
+.mh-prose .mh-paywall__login summary{padding:8px 0;border:0;background:none}
+.mh-prose .mh-paywall__login summary::after,.mh-prose .mh-paywall__login[open] summary::after{content:none}
+.mh-prose .mh-paywall__login > :not(summary){padding:0}
+.mh-paywall__form{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin:.75rem 0 0}
+.mh-paywall__form input[type=email]{flex:1 1 15rem;min-height:44px;padding:0 .85rem;border:1px solid var(--mh-line);border-radius:4px;background:var(--mh-card);color:var(--mh-ink);font:inherit;font-size:var(--mh-t7)}
+.mailerhive .mh-btn--ghost{background:transparent;border:1px solid var(--mh-accent);color:var(--mh-accent);cursor:pointer;font:inherit;font-size:var(--mh-t7);font-weight:600}
+.mailerhive .mh-btn--ghost:hover{background:var(--mh-tint);color:var(--mh-ink)}
+.mh-paywall__sent{display:flex;gap:.5rem;align-items:flex-start;margin:.5rem 0 0;padding:.75rem 1rem;background:var(--mh-tint);border-radius:8px;font-size:var(--mh-t7)}
+.mh-paywall__sent .mh-icon{flex:none;width:18px;height:18px;margin-top:.15rem;color:var(--mh-accent)}
+.mh-paywall__alt{margin:.75rem 0 0;text-align:center;font-size:var(--mh-t7)}
+.mh-hp,.mh-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mh-plans{margin-top:1.75rem}
+.mh-plans__in{padding:clamp(1.5rem, 1rem + 2vw, 2.5rem) clamp(1.25rem, .75rem + 2vw, 2.75rem)}
+.mh-account__list{padding-left:1.1em}
+@media (max-width:560px){.mh-tiers{grid-template-columns:1fr}.mh-badge{margin-left:0;margin-top:.3rem}}
+.mh-tier--free .mh-plan__go{background:transparent;border:1px solid var(--mh-accent);color:var(--mh-accent)}

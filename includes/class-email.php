@@ -86,9 +86,9 @@ final class Email {
 		if ( $existing && $wpdb->get_var( $wpdb->prepare( "SELECT campaign_id FROM {$wpdb->prefix}mailerpress_campaigns WHERE campaign_id = %d AND status <> 'trash'", $existing ) ) ) {
 			return array( 'ok' => true, 'campaign_id' => $existing, 'message' => 'This issue already has a MailerPress campaign.' );
 		}
-		$lists = self::list_ids();
+		$lists = array_values( array_filter( array_map( 'intval', (array) apply_filters( 'mailerhive_draft_list_ids', self::list_ids(), $post ) ) ) );
 		if ( ! $lists ) {
-			return array( 'ok' => false, 'campaign_id' => 0, 'message' => 'Choose at least one MailerPress list on the MailerPress tab first.' );
+			return array( 'ok' => false, 'campaign_id' => 0, 'message' => 'This issue has no MailerPress list to go to. Choose lists on the MailerPress tab, or give its paid tier a list on the Paid tab.' );
 		}
 
 		$html    = self::render( $post );

@@ -164,13 +164,14 @@ final class Issues {
 		$out   = '<ol class="nl-issues__list" role="list">';
 		foreach ( $posts as $p ) {
 			$out .= sprintf(
-				'<li><a class="nl-issue" href="%1$s"><time datetime="%2$s">%3$s</time><span class="nl-issue__main"><span class="nl-issue__t">%4$s</span><span class="nl-issue__d">%5$s</span></span><span class="nl-issue__go">%6$s</span></a></li>',
+				'<li><a class="nl-issue" href="%1$s"><time datetime="%2$s">%3$s</time><span class="nl-issue__main"><span class="nl-issue__t">%4$s%7$s</span><span class="nl-issue__d">%5$s</span></span><span class="nl-issue__go">%6$s</span></a></li>',
 				esc_url( get_permalink( $p ) ),
 				esc_attr( get_the_date( 'Y-m-d', $p ) ),
 				esc_html( get_the_date( 'M j, Y', $p ) ),
 				esc_html( get_the_title( $p ) ),
 				esc_html( wp_trim_words( self::subtitle( $p ), 22 ) ),
-				$arrow
+				$arrow,
+				(string) apply_filters( 'mailerhive_issue_badge', '', $p )
 			);
 		}
 		return $out . '</ol>';
@@ -188,6 +189,7 @@ final class Issues {
 			'<p><label for="mh-subtitle"><strong>Subtitle</strong></label><textarea id="mh-subtitle" name="mh_subtitle" rows="3" style="width:100%%">%s</textarea></p>',
 			esc_textarea( (string) get_post_meta( $post->ID, self::META_SUBTITLE, true ) )
 		);
+		do_action( 'mailerhive_issue_meta_box', $post );
 		echo '<p>Source: ' . esc_html( $source ? $source : 'wp' ) . '</p>';
 		if ( $campaign ) {
 			/* translators: %d: campaign ID */
@@ -213,6 +215,7 @@ final class Issues {
 		if ( ! get_post_meta( $post_id, self::META_SOURCE, true ) ) {
 			update_post_meta( $post_id, self::META_SOURCE, 'wp' );
 		}
+		do_action( 'mailerhive_issue_meta_save', $post_id );
 	}
 
 	public static function columns( array $cols ): array {

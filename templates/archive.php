@@ -48,7 +48,7 @@ $mailerhive_intro = (string) Settings::get( 'archive_intro' ) ?: Settings::tagli
 			<li>
 				<a class="mh-row" href="<?php echo esc_url( get_permalink( $mailerhive_issue ) ); ?>">
 					<time datetime="<?php echo esc_attr( get_the_date( 'Y-m-d', $mailerhive_issue ) ); ?>"><?php echo esc_html( get_the_date( 'M j', $mailerhive_issue ) ); ?></time>
-					<span class="mh-row__main"><span class="mh-row__t"><?php echo esc_html( get_the_title( $mailerhive_issue ) ); ?></span><span class="mh-row__d"><?php echo esc_html( wp_trim_words( Issues::subtitle( $mailerhive_issue ), 24 ) ); ?></span></span>
+					<span class="mh-row__main"><span class="mh-row__t"><?php echo esc_html( get_the_title( $mailerhive_issue ) ); ?><?php echo apply_filters( 'mailerhive_issue_badge', '', $mailerhive_issue ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the filter callback. ?></span><span class="mh-row__d"><?php echo esc_html( wp_trim_words( Issues::subtitle( $mailerhive_issue ), 24 ) ); ?></span></span>
 					<span class="mh-row__go"><?php echo Icons::get( 'arrow-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
 				</a>
 			</li>

@@ -17,12 +17,14 @@ Beehiiv- and Ghost-style newsletter publishing for WordPress and [MailerPress](h
 - **Consent policy** for Core Forms → MailerPress signups. Only registered forms with an exact consent disclosure can add contacts; opt-outs and suppression tags are respected; consent evidence (form, time, version, disclosure) is saved on the contact. Unregistered forms fail closed.
 - **FluentCart lifecycle tags**: purchase, refund and abandoned-checkout tags, plus product-category interest tags.
 - **Rich paste** in the MailerPress editor for Google Docs and block-editor content.
+- **Paid subscriptions** sold through FluentCart: tiers ordered lowest to highest, each with its own MailerPress list. Recurring plans follow the FluentCart subscription (renewals, failed payments with a grace period, cancellations that run to the end of the paid period, pauses, refunds); one-time plans give a fixed term that stacks on renewal, or lifetime access. Paid issues show a preview and the plans; members read in full after signing in or through an emailed one-time reading link. Drafts for paid issues go to the matching tier lists. Turning the module on starts you with a Free tier (your existing lists and signup form) and a Paid tier; "Create FluentCart product" on any tier builds a published product with monthly, yearly and optional lifetime prices and maps them in one click. Includes a Paid members screen with manual grants, `[mailerhive_plans]` and `[mailerhive_account]`.
 
 ## Requirements
 
 - WordPress 6.6+, PHP 8.1+
 - MailerPress (and MailerPress Pro for some features) for email drafts and mirroring. The archive and reading pages work without it.
 - Core Forms for the signup form and the consent module (optional).
+- FluentCart for paid subscriptions (optional).
 
 ## Updates and license
 
@@ -43,6 +45,7 @@ wp mailerhive import-campaign <campaign_id> [--title=<title>] [--slug=<slug>]
 wp mailerhive relink
 wp mailerhive sync
 wp mailerhive seed
+wp mailerhive paid members|reconcile|sweep|grant|revoke|access [<args>]
 ```
 
 ## Building a release

@@ -55,6 +55,8 @@ $mailerhive_count = (int) wp_count_posts( Issues::TYPE )->publish;
 		</div>
 	</section>
 
+	<?php do_action( 'mailerhive_landing_after_hero' ); ?>
+
 	<?php if ( $mailerhive_recent ) : ?>
 	<section class="mh-year mh-recent" id="mh-recent" aria-labelledby="mh-recent-h">
 		<h2 id="mh-recent-h"><?php echo Icons::get( 'news' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Recent issues', 'mailerhive' ); ?></h2>
@@ -63,7 +65,7 @@ $mailerhive_count = (int) wp_count_posts( Issues::TYPE )->publish;
 			<li>
 				<a class="mh-row" href="<?php echo esc_url( get_permalink( $mailerhive_issue ) ); ?>">
 					<time datetime="<?php echo esc_attr( get_the_date( 'Y-m-d', $mailerhive_issue ) ); ?>"><?php echo esc_html( get_the_date( 'M j', $mailerhive_issue ) ); ?></time>
-					<span class="mh-row__main"><span class="mh-row__t"><?php echo esc_html( get_the_title( $mailerhive_issue ) ); ?></span><span class="mh-row__d"><?php echo esc_html( wp_trim_words( Issues::subtitle( $mailerhive_issue ), 24 ) ); ?></span></span>
+					<span class="mh-row__main"><span class="mh-row__t"><?php echo esc_html( get_the_title( $mailerhive_issue ) ); ?><?php echo apply_filters( 'mailerhive_issue_badge', '', $mailerhive_issue ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the filter callback. ?></span><span class="mh-row__d"><?php echo esc_html( wp_trim_words( Issues::subtitle( $mailerhive_issue ), 24 ) ); ?></span></span>
 					<span class="mh-row__go"><?php echo Icons::get( 'arrow-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
 				</a>
 			</li>

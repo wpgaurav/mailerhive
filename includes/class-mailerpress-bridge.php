@@ -111,7 +111,7 @@ final class MailerPress_Bridge {
 			}
 		}
 
-		$lists = array_map( 'intval', (array) Settings::get( 'mirror_list_ids' ) );
+		$lists = array_map( 'intval', (array) apply_filters( 'mailerhive_mirror_list_ids', (array) Settings::get( 'mirror_list_ids' ) ) );
 		if ( ! $lists || ! Settings::on( 'mirror_enabled' ) ) {
 			return self::record( $result );
 		}
@@ -182,6 +182,7 @@ final class MailerPress_Bridge {
 		if ( is_wp_error( $post_id ) ) {
 			return 0;
 		}
+		do_action( 'mailerhive_issue_mirrored', (int) $post_id, self::list_ids( $cfg ) );
 		$content = Content::import_images( $content, (int) $post_id );
 		wp_update_post(
 			wp_slash(

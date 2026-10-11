@@ -22,7 +22,8 @@ final class Settings {
 		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle', 'landing_shell' ),
 		'mailerpress' => array( 'auto_draft', 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
-		'modules'     => array( 'module_consent_policy', 'module_fluentcart_lifecycle', 'module_rich_paste' ),
+		'modules'     => array( 'module_consent_policy', 'module_fluentcart_lifecycle', 'module_rich_paste', 'module_paid' ),
+		'paid'        => array( 'paid_resubscribe', 'paid_add_free_list', 'paid_show_on_landing', 'paid_show_free' ),
 	);
 
 	const TABS = array(
@@ -32,6 +33,7 @@ final class Settings {
 		'mailerpress' => 'MailerPress',
 		'analytics'   => 'Analytics',
 		'modules'     => 'Modules',
+		'paid'        => 'Paid',
 		'license'     => 'License',
 		'tools'       => 'Tools & status',
 	);
@@ -107,6 +109,21 @@ final class Settings {
 			'consent_version'         => 'v1',
 			'fc_category_tags'        => '',
 			'fc_customer_list'        => 'Customers',
+			// Paid subscriptions (module off for new installs).
+			'module_paid'             => false,
+			'paid_tiers'              => array(),
+			'paid_preview_blocks'     => 3,
+			'paid_grace_days'         => 3,
+			'paid_cookie_days'        => 60,
+			'paid_resubscribe'        => true,
+			'paid_add_free_list'      => true,
+			'paid_show_on_landing'    => true,
+			'paid_plans_heading'      => '',
+			'paid_plans_intro'        => '',
+			'paid_show_free'          => true,
+			'free_tier_name'          => 'Free',
+			'free_tier_description'   => '',
+			'paid_seeded'             => false,
 		);
 	}
 
@@ -411,8 +428,25 @@ final class Settings {
 		if ( isset( $in['head_html'] ) ) {
 			$out['head_html'] = current_user_can( 'unfiltered_html' ) ? (string) $in['head_html'] : wp_kses_post( (string) $in['head_html'] );
 		}
+		if ( 'paid' === $tab && class_exists( '\\MailerHive\\Modules\\Paid\\Admin' ) ) {
+			$out = \MailerHive\Modules\Paid\Admin::sanitize( $in, $out );
+		}
 		foreach ( self::CHECKBOXES[ $tab ] ?? array() as $k ) {
 			$out[ $k ] = ! empty( $in[ $k ] );
+		}
+		if ( 'modules' === $tab && $out['module_paid'] && ! $out['paid_tiers'] && ! $out['paid_seeded'] ) {
+			// First switch-on: start with Free (the existing lists) plus one Paid tier.
+			$out['paid_tiers']  = array(
+				array(
+					'key'         => 'paid',
+					'name'        => __( 'Paid', 'mailerhive' ),
+					'description' => __( 'Every issue, including the paid-only ones, and the full archive.', 'mailerhive' ),
+					'list_id'     => MP_Store::available() ? MP_Store::create_list( __( 'Paid subscribers', 'mailerhive' ), __( 'Managed by MailerHive from FluentCart purchases.', 'mailerhive' ) ) : 0,
+					'product_id'  => 0,
+					'plans'       => array(),
+				),
+			);
+			$out['paid_seeded'] = true;
 		}
 		return $out;
 	}
@@ -708,6 +742,14 @@ final class Settings {
 		self::area( $s, 'head_html', __( 'Extra head HTML', 'mailerhive' ), __( 'Optional tags printed in the &lt;head&gt; of MailerHive pages, such as another analytics or verification tag.', 'mailerhive' ), 4, true );
 	}
 
+	private static function tab_paid( array $s ): void {
+		if ( ! class_exists( '\\MailerHive\\Modules\\Paid\\Admin' ) ) {
+			self::row( __( 'Paid tiers', 'mailerhive' ), '<a href="' . esc_url( add_query_arg( 'tab', 'modules', self::url() ) ) . '">' . esc_html__( 'Turn on Paid subscriptions on the Modules tab first.', 'mailerhive' ) . '</a>' );
+			return;
+		}
+		\MailerHive\Modules\Paid\Admin::tab( $s );
+	}
+
 	private static function tab_modules( array $s ): void {
 		self::check( $s, 'module_consent_policy', __( 'Consent policy', 'mailerhive' ), __( 'Gate Core Forms → MailerPress signups on a reviewed consent route', 'mailerhive' ), __( 'Only registered forms can add contacts, the consent checkbox must carry the exact disclosure on record, spam and existing opt-outs are respected, and consent evidence is saved on the contact. Unregistered forms fail closed.', 'mailerhive' ) );
 		$policy = get_option( 'mailerhive_consent_policy', get_option( 'gt_core_forms_mailerpress_policy', array() ) );
@@ -720,6 +762,8 @@ final class Settings {
 		}
 		self::row( __( 'Registered forms', 'mailerhive' ), $state . self::tool_button_html( 'register_form', __( 'Register the signup form', 'mailerhive' ), 'secondary' ), __( 'Registers the form chosen on the General tab using its MailerPress action and consent checkbox. Re-run after editing that form’s action or consent wording.', 'mailerhive' ) );
 		self::text( $s, 'consent_version', __( 'Consent version', 'mailerhive' ), __( 'Saved with every new consent record. Change it when you change the disclosure wording.', 'mailerhive' ), 'regular-text code' );
+		self::heading( __( 'Paid subscriptions', 'mailerhive' ) );
+		self::check( $s, 'module_paid', __( 'Paid tiers', 'mailerhive' ), __( 'Sell newsletter subscriptions through FluentCart', 'mailerhive' ), __( 'Recurring plans follow the FluentCart subscription; one-time plans give a fixed term or lifetime access. Paid issues show a preview and the plans, and each tier gets its own MailerPress list. Set tiers on the Paid tab.', 'mailerhive' ) );
 		self::heading( __( 'FluentCart', 'mailerhive' ) );
 		self::check( $s, 'module_fluentcart_lifecycle', __( 'Lifecycle tags', 'mailerhive' ), __( 'Tag MailerPress contacts from FluentCart purchases, refunds and abandoned checkouts', 'mailerhive' ), __( 'A paid order can create a contact on the customer list below. Existing contacts are never re-subscribed.', 'mailerhive' ) );
 		self::text( $s, 'fc_customer_list', __( 'Customer list', 'mailerhive' ), __( 'MailerPress list name for paying customers.', 'mailerhive' ) );
@@ -892,6 +936,7 @@ final class Settings {
 			'MailerPress'                 => esc_html( (string) $mpv ),
 			'Consent policy module'       => self::on( 'module_consent_policy' ) ? $where( 'MailerHive\\Modules\\Consent_Policy' ) : 'off',
 			'FluentCart lifecycle module' => self::on( 'module_fluentcart_lifecycle' ) ? $where( 'MailerHive\\Modules\\FluentCart_Lifecycle' ) : 'off',
+			'Paid subscriptions module'   => self::on( 'module_paid' ) ? $where( 'MailerHive\\Modules\\Paid\\Members' ) . ( wp_next_scheduled( 'mailerhive_paid_sweep' ) ? ', next expiry check ' . esc_html( wp_date( 'M j, H:i', (int) wp_next_scheduled( 'mailerhive_paid_sweep' ) ) ) : '' ) : 'off',
 			'Issues'                      => $counts ? esc_html( implode( ', ', array_map( static fn( $k, $v ) => "{$v} {$k}", array_keys( $counts ), $counts ) ) ) : '0',
 			'Issue URLs'                  => '<code>' . esc_html( home_url( '/' . self::issue_base() . '/{slug}/' ) ) . '</code>',
 			'Last campaign sync'          => $last ? esc_html( sprintf( '%s: %d linked, %d published', wp_date( 'M j, Y H:i', (int) $last['time'] ), $last['linked'], $last['mirrored'] ) ) : 'never',

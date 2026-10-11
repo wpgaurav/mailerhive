@@ -35,7 +35,14 @@ $mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / 230 ) );
 			<?php endif; ?>
 		</div>
 		<div class="mh-mail__body mh-prose">
-			<?php the_content(); ?>
+			<?php
+			$mailerhive_body = apply_filters( 'mailerhive_issue_body', null, $mailerhive_post );
+			if ( null === $mailerhive_body ) {
+				the_content();
+			} else {
+				echo $mailerhive_body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rendered content from the paid module.
+			}
+			?>
 		</div>
 	</article>
 
