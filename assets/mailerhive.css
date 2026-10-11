@@ -51,6 +51,20 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mailerhive .mh-btn:hover{background:var(--mh-accent-hover);color:var(--mh-accent-ink)}
 .mailerhive .mh-btn--sm{min-height:38px;padding:0 .9rem;font-size:var(--mh-t7)}
 @media (max-width:480px){.mh-brand__txt small{display:none}.mh-nav{gap:.85rem}}
+.mh-logo{display:block;max-width:100%;height:auto}
+.mh-brand--logo{min-height:44px}
+.mh-logo--dark{display:none}
+:root[data-theme="dark"] .mh-logo--light{display:none}
+:root[data-theme="dark"] .mh-logo--dark{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mh-logo--light{display:none}:root:not([data-theme="light"]) .mh-logo--dark{display:block}}
+.mailerhive .mh-theme{display:inline-grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid var(--mh-line);border-radius:999px;background:transparent;color:var(--mh-ink);cursor:pointer;transition:border-color .22s var(--mh-ease),color .22s var(--mh-ease)}
+.mailerhive .mh-theme:hover{border-color:var(--mh-accent);color:var(--mh-accent)}
+.mailerhive .mh-theme svg{width:19px;height:19px}
+.mh-theme__moon{display:none}
+:root[data-theme="dark"] .mh-theme__sun{display:none}
+:root[data-theme="dark"] .mh-theme__moon{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mh-theme__sun{display:none}:root:not([data-theme="light"]) .mh-theme__moon{display:block}}
+@media (pointer:coarse){.mailerhive .mh-theme{width:44px;height:44px}}
 
 /* the issue as an email */
 .mh-main{max-width:62rem;margin:0 auto;padding:clamp(1.5rem, 1rem + 2.5vw, 3.5rem) 20px clamp(3rem, 2rem + 3vw, 5rem)}

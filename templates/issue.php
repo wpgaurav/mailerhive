@@ -18,7 +18,7 @@ $neighbours = Issues::neighbours( $post );
 <main id="mh-main" class="mh-main">
 	<article class="mh-mail" aria-labelledby="mh-subject">
 		<div class="mh-mail__bar">
-			<span class="mh-mail__from"><?php echo Shell::avatar( 32 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><b><?php echo esc_html( Settings::get( 'author_name' ) ); ?></b> &middot; <?php echo esc_html( Settings::get( 'brand_name' ) ); ?></span></span>
+			<span class="mh-mail__from"><?php echo Shell::avatar( 32 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo Shell::sender_line(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in sender_line(). ?></span></span>
 			<time datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>"><?php echo esc_html( get_the_date( 'F j, Y' ) ); ?></time>
 		</div>
 		<header class="mh-mail__head">

@@ -17,7 +17,7 @@ final class Settings {
 	/** Checkbox fields per tab, so a partial (one-tab) save can record "off". */
 	const CHECKBOXES = array(
 		'issues'      => array( 'show_subscribe', 'show_pager', 'nofollow', 'external_new_tab' ),
-		'design'      => array( 'detach_theme', 'shell_mailerpress_pages' ),
+		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle' ),
 		'mailerpress' => array( 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
 	);
@@ -38,6 +38,14 @@ final class Settings {
 			'author_name'             => 'Gaurav Tiwari',
 			'author_initials'         => 'GT',
 			'avatar_url'              => '',
+			'avatar_id'               => 0,
+			'header_style'            => 'avatar',
+			'logo_id'                 => 0,
+			'logo_dark_id'            => 0,
+			'logo_width'              => 140,
+			'byline'                  => 'by Gaurav Tiwari',
+			'sender_line'             => '',
+			'subscribe_label'         => 'Subscribe',
 			'tagline'                 => 'Notes on WordPress, publishing, search, and independent products, sent when something real comes off my bench.',
 			'landing_page_id'         => 0,
 			'form_slug'               => 'from-the-workbench',
@@ -57,6 +65,7 @@ final class Settings {
 			'detach_theme'            => true,
 			'shell_mailerpress_pages' => true,
 			'color_scheme'            => 'auto',
+			'show_theme_toggle'       => true,
 			'accent_light'            => '#C0392B',
 			'accent_dark'             => '#E8836F',
 			'header_links'            => '',
@@ -83,6 +92,7 @@ final class Settings {
 		add_action( 'admin_post_mailerhive_tool', array( __CLASS__, 'run_tool' ) );
 		add_action( 'init', array( __CLASS__, 'maybe_flush' ), 99 );
 		add_filter( 'plugin_action_links_' . plugin_basename( MAILERHIVE_FILE ), array( __CLASS__, 'action_links' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );
 	}
 
 	public static function all(): array {
@@ -277,7 +287,7 @@ final class Settings {
 		$out = self::all();
 		$tab = sanitize_key( $in['_tab'] ?? '' );
 
-		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode' ) as $k ) {
+		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode', 'byline', 'sender_line', 'subscribe_label' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( $in[ $k ] );
 			}
@@ -297,6 +307,17 @@ final class Settings {
 		}
 		if ( isset( $in['landing_page_id'] ) ) {
 			$out['landing_page_id'] = absint( $in['landing_page_id'] );
+		}
+		foreach ( array( 'avatar_id', 'logo_id', 'logo_dark_id' ) as $k ) {
+			if ( isset( $in[ $k ] ) ) {
+				$out[ $k ] = absint( $in[ $k ] );
+			}
+		}
+		if ( isset( $in['logo_width'] ) ) {
+			$out['logo_width'] = min( 400, max( 40, absint( $in['logo_width'] ) ) );
+		}
+		if ( isset( $in['header_style'] ) ) {
+			$out['header_style'] = in_array( $in['header_style'], array( 'avatar', 'logo', 'logo_text' ), true ) ? $in['header_style'] : 'avatar';
 		}
 		if ( isset( $in['issue_base'] ) ) {
 			$old               = self::issue_base();
@@ -449,12 +470,50 @@ final class Settings {
 		self::row( $label, $html . '</select>', $help, 'mh-' . $key );
 	}
 
+	private static function media( array $s, string $key, string $label, string $help = '' ): void {
+		$id  = (int) $s[ $key ];
+		$img = $id ? wp_get_attachment_image_url( $id, 'medium' ) : '';
+		$html = sprintf(
+			'<div class="mh-media" data-target="mh-%1$s"><input type="hidden" id="mh-%1$s" name="%2$s" value="%3$d"><img class="mh-media__preview" src="%4$s" alt=""%5$s> <button type="button" class="button mh-media__pick">Choose image</button> <button type="button" class="button-link-delete mh-media__clear"%5$s>Remove</button></div>',
+			esc_attr( $key ),
+			esc_attr( self::name( $key ) ),
+			$id,
+			esc_url( (string) $img ),
+			$img ? '' : ' hidden'
+		);
+		self::row( $label, $html, $help );
+	}
+
+	public static function admin_assets( string $hook ): void {
+		if ( ! isset( $_GET['page'] ) || 'mailerhive' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+		wp_enqueue_media();
+		wp_add_inline_style( 'wp-admin', '.mh-media__preview{display:block;max-width:200px;max-height:90px;margin:0 0 8px;border:1px solid #dcdcde;border-radius:4px;background:#f6f7f7;padding:4px}.mh-media__preview[hidden],.mh-media__clear[hidden]{display:none}.mailerhive-settings h2.title{margin-top:2em}' );
+		wp_add_inline_script(
+			'media-editor',
+			"jQuery(function($){\$(document).on('click','.mh-media__pick',function(e){e.preventDefault();var box=\$(this).closest('.mh-media');var frame=wp.media({title:'Choose image',library:{type:'image'},multiple:false});frame.on('select',function(){var a=frame.state().get('selection').first().toJSON();box.find('input').val(a.id);var u=(a.sizes&&a.sizes.medium?a.sizes.medium.url:a.url);box.find('.mh-media__preview').attr('src',u).prop('hidden',false);box.find('.mh-media__clear').prop('hidden',false);});frame.open();});\$(document).on('click','.mh-media__clear',function(e){e.preventDefault();var box=\$(this).closest('.mh-media');box.find('input').val(0);box.find('.mh-media__preview').attr('src','').prop('hidden',true);\$(this).prop('hidden',true);});});"
+		);
+	}
+
+	private static function heading( string $text ): void {
+		echo '</table><h2 class="title">' . esc_html( $text ) . '</h2><table class="form-table" role="presentation">';
+	}
+
 	private static function tab_general( array $s ): void {
 		self::text( $s, 'brand_name', 'Newsletter name' );
-		self::text( $s, 'author_name', 'Sender name' );
-		self::text( $s, 'author_initials', 'Avatar initials', 'Shown in a coloured circle when no avatar image is set.', 'small-text' );
-		self::text( $s, 'avatar_url', 'Avatar image URL', 'Optional square image from the media library. Replaces the initials.', 'large-text', 'url' );
+		self::text( $s, 'author_name', 'Sender name', 'Shown on every issue as the email sender.' );
+		self::text( $s, 'byline', 'Byline', 'Shown under the newsletter name in the header, for example "by Gaurav Tiwari". Leave blank to hide.' );
+		self::text( $s, 'sender_line', 'Sender line', 'The "from" line on each issue. Default: "{Sender name} · {Newsletter name}".', 'large-text' );
 		self::area( $s, 'tagline', 'Tagline', 'Used on the archive and in the subscribe box.', 2 );
+		self::heading( 'Branding' );
+		self::select( $s, 'header_style', 'Header shows', array( 'avatar' => 'Avatar, newsletter name and byline', 'logo_text' => 'Logo, newsletter name and byline', 'logo' => 'Logo only' ) );
+		self::media( $s, 'logo_id', 'Logo', 'SVG or PNG with a transparent background works best.' );
+		self::media( $s, 'logo_dark_id', 'Logo for dark mode', 'Optional. Falls back to the main logo.' );
+		self::text( $s, 'logo_width', 'Logo width (px)', 'Display width in the header. Height follows the image.', 'small-text', 'number' );
+		self::media( $s, 'avatar_id', 'Avatar', 'Square photo or mark shown in the header and on each issue. Falls back to the initials.' );
+		self::text( $s, 'author_initials', 'Avatar initials', 'Used when no avatar image is set.', 'small-text' );
+		self::heading( 'Signup' );
 		self::row(
 			'Newsletter page',
 			wp_dropdown_pages(
@@ -473,6 +532,7 @@ final class Settings {
 		$forms = array( '' => '— None —' ) + self::core_forms();
 		self::select( $s, 'form_slug', 'Signup form', $forms, 'The Core Forms form shown on issue pages and the archive. It must be registered with the site MailerPress consent policy, or signups fail closed.' );
 		self::text( $s, 'form_shortcode', 'Custom form shortcode', 'Optional. Overrides the form above, for example a different form plugin.', 'large-text code' );
+		self::text( $s, 'subscribe_label', 'Header button label' );
 	}
 
 	private static function tab_issues( array $s ): void {
@@ -492,6 +552,7 @@ final class Settings {
 		self::check( $s, 'detach_theme', 'Theme isolation', 'Detach theme styles, scripts and hooks on MailerHive pages', 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.' );
 		self::check( $s, 'shell_mailerpress_pages', 'Subscription pages', 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell' );
 		self::select( $s, 'color_scheme', 'Colour scheme', array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
+		self::check( $s, 'show_theme_toggle', 'Theme toggle', 'Show a light/dark toggle in the header', 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.' );
 		self::text( $s, 'accent_light', 'Accent (light)', '', 'small-text', 'color' );
 		self::text( $s, 'accent_dark', 'Accent (dark)', 'Used for buttons and links on dark backgrounds.', 'small-text', 'color' );
 		self::area( $s, 'header_links', 'Header links', 'One per line as <code>Label | URL</code>. A Subscribe button is always added.', 3, true );

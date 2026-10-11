@@ -88,6 +88,7 @@ final class Shell {
 		add_action( 'wp_footer', array( __CLASS__, 'dequeue_theme_assets' ), 19 );
 		add_action( 'wp_head', array( __CLASS__, 'head_html' ), 99 );
 		add_action( 'wp_footer', array( __CLASS__, 'rybbit' ), 50 );
+		add_action( 'wp_footer', array( __CLASS__, 'theme_toggle_script' ), 5 );
 	}
 
 	private static function callback_file( $cb ): string {
@@ -110,6 +111,35 @@ final class Shell {
 		return '';
 	}
 
+	/**
+	 * Directories whose code counts as "the theme": the themes folder and, for
+	 * Marketers Delight, its installed drop-ins (scripts, opt-ins, testimonials).
+	 */
+	private static function theme_roots(): array {
+		$roots = array( get_theme_root() );
+		if ( defined( 'MD_INSTALLED_DROPINS' ) ) {
+			$roots[] = MD_INSTALLED_DROPINS;
+		}
+		$roots = (array) apply_filters( 'mailerhive_theme_roots', $roots );
+		$out   = array();
+		foreach ( $roots as $r ) {
+			$real = realpath( (string) $r );
+			if ( $real ) {
+				$out[] = untrailingslashit( wp_normalize_path( $real ) );
+			}
+		}
+		return array_unique( $out );
+	}
+
+	private static function in_roots( string $file, array $roots ): bool {
+		foreach ( $roots as $root ) {
+			if ( str_starts_with( $file, $root . '/' ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static function late_detach(): void {
 		self::detach_theme();
 		remove_action( 'wp_head', 'wp_custom_css_cb', 101 ); // Customizer CSS belongs to the theme.
@@ -117,8 +147,8 @@ final class Shell {
 
 	private static function detach_theme(): void {
 		global $wp_filter;
-		$root = wp_normalize_path( (string) realpath( get_theme_root() ) );
-		if ( '' === $root ) {
+		$roots = self::theme_roots();
+		if ( ! $roots ) {
 			return;
 		}
 		foreach ( self::THEME_HOOKS as $hook ) {
@@ -128,7 +158,7 @@ final class Shell {
 			foreach ( $wp_filter[ $hook ]->callbacks as $priority => $callbacks ) {
 				foreach ( $callbacks as $cb ) {
 					$file = wp_normalize_path( self::callback_file( $cb['function'] ) );
-					if ( $file && str_starts_with( $file, $root . '/' ) ) {
+					if ( $file && self::in_roots( $file, $roots ) ) {
 						remove_filter( $hook, $cb['function'], $priority );
 					}
 				}
@@ -213,11 +243,61 @@ final class Shell {
 	}
 
 	public static function avatar( int $size = 34 ): string {
-		$url = (string) Settings::get( 'avatar_url' );
+		$id  = (int) Settings::get( 'avatar_id' );
+		$url = $id ? (string) wp_get_attachment_image_url( $id, array( $size * 2, $size * 2 ) ) : (string) Settings::get( 'avatar_url' );
 		if ( $url ) {
 			return sprintf( '<img class="mh-avatar mh-avatar--img" src="%s" width="%2$d" height="%2$d" alt="">', esc_url( $url ), $size );
 		}
 		return '<span class="mh-avatar" aria-hidden="true">' . esc_html( (string) Settings::get( 'author_initials' ) ) . '</span>';
+	}
+
+	public static function logo(): string {
+		$light = (int) Settings::get( 'logo_id' );
+		if ( ! $light ) {
+			return '';
+		}
+		$dark  = (int) Settings::get( 'logo_dark_id' ) ?: $light;
+		$width = (int) Settings::get( 'logo_width' ) ?: 140;
+		$alt   = (string) Settings::get( 'brand_name' );
+		$img   = static function ( int $id, string $class ) use ( $width, $alt ): string {
+			$src = wp_get_attachment_image_src( $id, 'full' );
+			if ( ! $src ) {
+				return '';
+			}
+			$h = $src[1] ? (int) round( $width * $src[2] / $src[1] ) : 0;
+			return sprintf( '<img class="mh-logo %s" src="%s" width="%d"%s alt="%s">', esc_attr( $class ), esc_url( $src[0] ), $width, $h ? ' height="' . $h . '"' : '', esc_attr( $alt ) );
+		};
+		if ( $dark === $light ) {
+			return $img( $light, '' );
+		}
+		return $img( $light, 'mh-logo--light' ) . $img( $dark, 'mh-logo--dark' );
+	}
+
+	public static function sender_line(): string {
+		$line = trim( (string) Settings::get( 'sender_line' ) );
+		if ( '' !== $line ) {
+			return esc_html( $line );
+		}
+		return '<b>' . esc_html( (string) Settings::get( 'author_name' ) ) . '</b> &middot; ' . esc_html( (string) Settings::get( 'brand_name' ) );
+	}
+
+	public static function toggle_enabled(): bool {
+		return Settings::on( 'show_theme_toggle' ) && 'auto' === Settings::get( 'color_scheme' );
+	}
+
+	/** Runs before first paint: apply a saved choice, otherwise leave the system setting in charge. */
+	private static function theme_bootstrap(): void {
+		if ( ! self::toggle_enabled() ) {
+			return;
+		}
+		echo "<script id=\"mailerhive-theme-bootstrap\">!function(){try{var t=localStorage.getItem('md-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}}();</script>\n";
+	}
+
+	public static function theme_toggle_script(): void {
+		if ( ! self::toggle_enabled() ) {
+			return;
+		}
+		echo "<script id=\"mailerhive-theme-toggle\">!function(){var d=document.documentElement,b=document.querySelector('.mh-theme'),m=window.matchMedia('(prefers-color-scheme: dark)');if(!b)return;function cur(){return d.getAttribute('data-theme')||(m.matches?'dark':'light')}function sync(){var c=cur();b.setAttribute('aria-pressed',c==='dark'?'true':'false');b.setAttribute('aria-label',c==='dark'?'Switch to light mode':'Switch to dark mode');b.setAttribute('title',b.getAttribute('aria-label'))}b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('md-theme',n)}catch(e){}sync()});m.addEventListener&&m.addEventListener('change',function(){sync()});sync()}();</script>\n";
 	}
 
 	private static function link_href( string $url ): string {
@@ -233,6 +313,7 @@ final class Shell {
 <meta charset="<?php bloginfo( 'charset' ); ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="<?php echo esc_attr( 'auto' === $scheme ? 'light dark' : $scheme ); ?>">
+<?php self::theme_bootstrap(); ?>
 <?php wp_head(); ?>
 </head>
 <body <?php body_class( 'mailerhive mh-' . self::context() ); ?>>
@@ -240,15 +321,34 @@ final class Shell {
 <a class="mh-skip" href="#mh-main">Skip to content</a>
 <header class="mh-top">
 	<div class="mh-top__in">
-		<a class="mh-brand" href="<?php echo esc_url( self::landing_url() ); ?>">
-			<?php echo self::avatar(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in avatar(). ?>
-			<span class="mh-brand__txt"><b><?php echo esc_html( Settings::get( 'brand_name' ) ); ?></b><small>by <?php echo esc_html( Settings::get( 'author_name' ) ); ?></small></span>
+		<?php
+		$style = (string) Settings::get( 'header_style' );
+		$logo  = 'avatar' === $style ? '' : self::logo();
+		$byline = (string) Settings::get( 'byline' );
+		?>
+		<a class="mh-brand<?php echo $logo && 'logo' === $style ? ' mh-brand--logo' : ''; ?>" href="<?php echo esc_url( self::landing_url() ); ?>"<?php echo $logo && 'logo' === $style ? ' aria-label="' . esc_attr( Settings::get( 'brand_name' ) ) . '"' : ''; ?>>
+			<?php
+			if ( $logo ) {
+				echo $logo; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in logo().
+			} else {
+				echo self::avatar(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in avatar().
+			}
+			?>
+			<?php if ( ! $logo || 'logo_text' === $style ) : ?>
+				<span class="mh-brand__txt"><b><?php echo esc_html( Settings::get( 'brand_name' ) ); ?></b><?php if ( $byline ) : ?><small><?php echo esc_html( $byline ); ?></small><?php endif; ?></span>
+			<?php endif; ?>
 		</a>
 		<nav class="mh-nav" aria-label="Newsletter">
 			<?php foreach ( Settings::link_lines( 'header_links' ) as $link ) : ?>
 				<a href="<?php echo esc_url( self::link_href( $link[1] ) ); ?>"><?php echo esc_html( $link[0] ); ?></a>
 			<?php endforeach; ?>
-			<a class="mh-btn mh-btn--sm" href="<?php echo ( in_array( self::context(), array( 'issue', 'archive' ), true ) && Settings::on( 'show_subscribe' ) ) ? '#mh-subscribe' : esc_url( self::landing_url() ); ?>">Subscribe</a>
+			<?php if ( self::toggle_enabled() ) : ?>
+				<button type="button" class="mh-theme" aria-pressed="false" aria-label="Switch colour mode">
+					<svg class="mh-theme__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"/></svg>
+					<svg class="mh-theme__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/></svg>
+				</button>
+			<?php endif; ?>
+			<a class="mh-btn mh-btn--sm" href="<?php echo ( in_array( self::context(), array( 'issue', 'archive' ), true ) && Settings::on( 'show_subscribe' ) ) ? '#mh-subscribe' : esc_url( self::landing_url() ); ?>"><?php echo esc_html( Settings::get( 'subscribe_label' ) ?: 'Subscribe' ); ?></a>
 		</nav>
 	</div>
 </header>
