@@ -229,7 +229,9 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mh-landing__content{margin-top:1.75rem}
 .mh-landing__content .mh-mail__body{padding-top:clamp(1.75rem, 1.25rem + 1.5vw, 2.5rem)}
 .mh-landing__content .mh-prose > h2:first-child{margin-top:0}
-.mh-landing .mh-sub{margin-top:clamp(2.5rem, 2rem + 2vw, 3.5rem)}
+.mh-landing__cta{margin:clamp(2rem, 1.5rem + 2vw, 3rem) 0 0;text-align:center}
+.mh-hero .mh-sub__form{scroll-margin-top:110px}
+#mh-subscribe{scroll-margin-top:110px}
 /* FAQ accordions inside prose (core Details block) */
 .mh-prose details{background:var(--mh-paper);border:1px solid var(--mh-line);border-radius:10px;transition:border-color .22s var(--mh-ease)}
 .mh-prose details + details{margin-top:12px}

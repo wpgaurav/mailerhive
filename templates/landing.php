@@ -81,7 +81,9 @@ $mailerhive_count = (int) wp_count_posts( Issues::TYPE )->publish;
 	</article>
 	<?php endif; ?>
 
-	<?php Shell::subscribe_box( 'mh-subscribe-end' ); ?>
+	<?php if ( $mailerhive_form ) : ?>
+	<p class="mh-landing__cta"><a class="mh-btn" href="#mh-subscribe"><?php echo Icons::get( 'mail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html( Settings::subscribe_heading() ); ?></span></a></p>
+	<?php endif; ?>
 </main>
 <?php
 Shell::foot();
