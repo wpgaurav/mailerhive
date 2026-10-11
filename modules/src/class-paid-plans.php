@@ -162,11 +162,81 @@ final class Plans {
 		);
 	}
 
-	public static function price( int $cents ): string {
-		if ( class_exists( '\FluentCart\App\Helpers\Helper' ) ) {
-			return html_entity_decode( wp_strip_all_tags( (string) \FluentCart\App\Helpers\Helper::toDecimal( $cents, true, null, true, 0 !== $cents % 100 ) ), ENT_QUOTES, 'UTF-8' );
+	/** GT Extensions for FluentCart's multi-currency module, when it is running. */
+	public static function multi_currency(): ?object {
+		if ( ! function_exists( 'gt_extensions_fluentcart' ) ) {
+			return null;
 		}
-		return number_format_i18n( $cents / 100, 2 );
+		try {
+			$module = gt_extensions_fluentcart()->getModule( 'multi_currency_variations' );
+		} catch ( \Throwable $e ) {
+			return null;
+		}
+		return is_object( $module ) && method_exists( $module, 'resolvePrice' ) && method_exists( $module, 'getCurrentCurrency' ) ? $module : null;
+	}
+
+	/** The store's own currency: what variation prices are stored in. */
+	public static function base_currency(): string {
+		if ( class_exists( '\GTExtensionsFluentCart\Modules\MultiCurrencyVariations\Settings' ) ) {
+			$code = (string) \GTExtensionsFluentCart\Modules\MultiCurrencyVariations\Settings::storeCurrency();
+			if ( '' !== $code ) {
+				return $code;
+			}
+		}
+		if ( class_exists( '\FluentCart\App\Helpers\Helper' ) ) {
+			return (string) ( \FluentCart\App\Helpers\Helper::shopConfig( 'currency' ) ?: 'USD' );
+		}
+		return 'USD';
+	}
+
+	/** Format minor units in an explicit currency (never the visitor-filtered default). */
+	public static function format( int $cents, string $currency ): string {
+		if ( class_exists( '\FluentCart\Api\CurrencySettings' ) ) {
+			return trim( html_entity_decode( wp_strip_all_tags( (string) \FluentCart\Api\CurrencySettings::getPriceHtml( $cents, $currency, 0 !== $cents % 100 ) ), ENT_QUOTES, 'UTF-8' ) );
+		}
+		return $currency . ' ' . number_format_i18n( $cents / 100, 0 !== $cents % 100 ? 2 : 0 );
+	}
+
+	/** Base-currency price, as stored on the variation. */
+	public static function price( int $cents ): string {
+		return self::format( $cents, self::base_currency() );
+	}
+
+	/**
+	 * A variation's price in a currency, resolved the way GT Extensions resolves it at
+	 * checkout (manual price book first, then the exchange rate). '' when that currency
+	 * has no price and the store blocks conversion.
+	 */
+	public static function price_in( int $variation_id, string $currency ): string {
+		$var = self::variation( $variation_id );
+		if ( ! $var ) {
+			return '';
+		}
+		$base = self::base_currency();
+		if ( $currency === $base ) {
+			return self::format( (int) $var['price'], $base );
+		}
+		$module = self::multi_currency();
+		if ( ! $module || ! class_exists( '\FluentCart\App\Models\ProductVariation' ) ) {
+			return '';
+		}
+		try {
+			$resolved = $module->resolvePrice( \FluentCart\App\Models\ProductVariation::query()->find( $variation_id ), $currency );
+		} catch ( \Throwable $e ) {
+			return '';
+		}
+		return $resolved ? self::format( (int) $resolved['item_price'], $currency ) : '';
+	}
+
+	public static function currency_sign(): string {
+		if ( class_exists( '\FluentCart\App\Helpers\CurrenciesHelper' ) && class_exists( '\FluentCart\App\Helpers\Helper' ) ) {
+			try {
+				return html_entity_decode( (string) \FluentCart\App\Helpers\CurrenciesHelper::getCurrencySign( self::base_currency() ), ENT_QUOTES, 'UTF-8' );
+			} catch ( \Throwable $e ) {
+				return '$';
+			}
+		}
+		return '$';
 	}
 
 	/** "per year", "for 12 months", "one time". */

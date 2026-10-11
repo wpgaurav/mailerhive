@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: MailerHive 1.4.0\n"
+"Project-Id-Version: MailerHive 1.4.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/mailerhive\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-11T14:29:34+00:00\n"
+"POT-Creation-Date: 2026-10-11T14:37:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: mailerhive\n"
@@ -76,7 +76,7 @@ msgstr ""
 
 #. translators: %s: tier name
 #: includes/class-settings.php:444
-#: modules/src/class-paid-plans.php:224
+#: modules/src/class-paid-plans.php:294
 msgid "Managed by MailerHive from FluentCart purchases."
 msgstr ""
 
@@ -286,7 +286,7 @@ msgid "Render MailerPress unsubscribe and manage-subscription pages in the Maile
 msgstr ""
 
 #: includes/class-settings.php:682
-#: modules/src/class-paid-admin.php:112
+#: modules/src/class-paid-admin.php:122
 msgid "Newsletter page"
 msgstr ""
 
@@ -614,7 +614,7 @@ msgid "“%s” is registered with the consent policy."
 msgstr ""
 
 #: includes/class-settings.php:843
-#: modules/src/class-paid-admin.php:350
+#: modules/src/class-paid-admin.php:467
 msgid "Not allowed."
 msgstr ""
 
@@ -652,7 +652,7 @@ msgid "Status"
 msgstr ""
 
 #: includes/class-settings.php:896
-#: modules/src/class-paid-admin.php:432
+#: modules/src/class-paid-admin.php:549
 msgid "Active"
 msgstr ""
 
@@ -661,7 +661,6 @@ msgid "Inactive"
 msgstr ""
 
 #: includes/class-settings.php:897
-#: modules/src/class-paid-admin.php:125
 msgid "Key"
 msgstr ""
 
@@ -795,13 +794,13 @@ msgid "The update package does not match the MailerHive release."
 msgstr ""
 
 #. translators: %s: newsletter name
-#: modules/src/class-paid-access.php:176
+#: modules/src/class-paid-access.php:178
 #, php-format
 msgid "Your reading link for %s"
 msgstr ""
 
 #. translators: 1: newsletter name, 2: link, 3: minutes
-#: modules/src/class-paid-access.php:179
+#: modules/src/class-paid-access.php:181
 #, php-format
 msgid ""
 "Here is your link to read %1$s on this device:\n"
@@ -812,119 +811,121 @@ msgid ""
 msgstr ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-access.php:317
+#: modules/src/class-paid-access.php:319
 #, php-format
 msgid "This issue is for %s subscribers"
 msgstr ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-access.php:319
+#: modules/src/class-paid-access.php:321
 #, php-format
 msgid "This issue is for %s subscribers and above"
 msgstr ""
 
 #. translators: %s: email address
-#: modules/src/class-paid-access.php:329
+#: modules/src/class-paid-access.php:331
 #, php-format
 msgid "You are signed in as %s, which has no active subscription at this level."
 msgstr ""
 
-#: modules/src/class-paid-access.php:347
+#: modules/src/class-paid-access.php:349
 msgid "Already a paid subscriber?"
 msgstr ""
 
-#: modules/src/class-paid-access.php:349
+#: modules/src/class-paid-access.php:351
 msgid "If that email has an active subscription, a reading link is on its way. It works once and expires in an hour."
 msgstr ""
 
-#: modules/src/class-paid-access.php:355
-#: modules/src/class-paid-access.php:356
+#: modules/src/class-paid-access.php:357
+#: modules/src/class-paid-access.php:358
 msgid "Email you subscribed with"
 msgstr ""
 
-#: modules/src/class-paid-access.php:357
+#: modules/src/class-paid-access.php:359
 msgid "Email me a reading link"
 msgstr ""
 
-#: modules/src/class-paid-access.php:360
+#: modules/src/class-paid-access.php:362
 msgid "Or sign in to your account"
 msgstr ""
 
 #. translators: %s: free tier name
-#: modules/src/class-paid-access.php:374
-#: modules/src/class-paid-access.php:380
+#: modules/src/class-paid-access.php:376
+#: modules/src/class-paid-access.php:382
 #: modules/src/class-paid-admin.php:40
 #: modules/src/class-paid-admin.php:72
-#: modules/src/class-paid-admin.php:322
+#: modules/src/class-paid-admin.php:90
+#: modules/src/class-paid-admin.php:439
 msgid "Free"
 msgstr ""
 
-#: modules/src/class-paid-access.php:379
+#: modules/src/class-paid-access.php:381
 msgid "Subscribe by email"
 msgstr ""
 
-#: modules/src/class-paid-access.php:381
+#: modules/src/class-paid-access.php:383
 msgid "unsubscribe anytime"
 msgstr ""
 
-#: modules/src/class-paid-access.php:427
+#: modules/src/class-paid-access.php:466
+#: modules/src/class-paid-admin.php:123
 msgid "Become a paid subscriber"
 msgstr ""
 
 #. translators: %s: email
-#: modules/src/class-paid-access.php:455
+#: modules/src/class-paid-access.php:494
 #, php-format
 msgid "Signed in as %s."
 msgstr ""
 
-#: modules/src/class-paid-access.php:457
+#: modules/src/class-paid-access.php:496
 msgid "There is no paid subscription on this email yet."
 msgstr ""
 
-#: modules/src/class-paid-access.php:474
+#: modules/src/class-paid-access.php:513
 msgid "Manage billing and renewals"
 msgstr ""
 
-#: modules/src/class-paid-access.php:477
+#: modules/src/class-paid-access.php:516
 msgid "Forget this device"
 msgstr ""
 
-#: modules/src/class-paid-access.php:486
+#: modules/src/class-paid-access.php:525
 msgid "Active, no end date"
 msgstr ""
 
 #. translators: %s: date
-#: modules/src/class-paid-access.php:490
+#: modules/src/class-paid-access.php:529
 #, php-format
 msgid "Active, renews around %s"
 msgstr ""
 
 #. translators: %s: date
-#: modules/src/class-paid-access.php:494
+#: modules/src/class-paid-access.php:533
 #, php-format
 msgid "Active until %s"
 msgstr ""
 
-#: modules/src/class-paid-access.php:497
+#: modules/src/class-paid-access.php:536
 msgid "Paused"
 msgstr ""
 
-#: modules/src/class-paid-access.php:498
+#: modules/src/class-paid-access.php:537
 msgid "Refunded"
 msgstr ""
 
-#: modules/src/class-paid-access.php:499
+#: modules/src/class-paid-access.php:538
 msgid "Revoked"
 msgstr ""
 
 #. translators: %s: date
-#: modules/src/class-paid-access.php:502
+#: modules/src/class-paid-access.php:541
 #, php-format
 msgid "Ended %s"
 msgstr ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-access.php:531
+#: modules/src/class-paid-access.php:570
 #, php-format
 msgid "Continue reading (for %s subscribers)"
 msgstr ""
@@ -954,439 +955,515 @@ msgid "Paid issues show a preview up to the More block (or the first few blocks)
 msgstr ""
 
 #: modules/src/class-paid-admin.php:65
-#: modules/src/class-paid-admin.php:439
+#: modules/src/class-paid-admin.php:162
+#: modules/src/class-paid-admin.php:556
 msgid "Access"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:87
-msgid "Order tiers from lowest to highest. A reader on a higher tier can read every issue for the tiers below it. Each tier gets its own MailerPress list; MailerHive adds and removes paying readers as FluentCart subscriptions start, renew, lapse or get refunded."
+#: modules/src/class-paid-admin.php:88
+msgid "Readers start on Free and move up. Each paid tier unlocks its own issues and every issue of the tiers below it, and has its own MailerPress list that MailerHive keeps in sync with FluentCart."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:89
+#: modules/src/class-paid-admin.php:90
+msgid "Tier order"
+msgstr ""
+
+#. translators: %d: active readers
+#: modules/src/class-paid-admin.php:94
+#, php-format
+msgid "%d reader"
+msgid_plural "%d readers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: modules/src/class-paid-admin.php:99
 msgid "FluentCart is not active. Tiers can be set up, but plans need FluentCart products."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:96
-msgid "Add a tier"
+#: modules/src/class-paid-admin.php:106
+msgid "Add a higher tier"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:104
+#: modules/src/class-paid-admin.php:114
 msgid "Reading and delivery"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:105
+#: modules/src/class-paid-admin.php:115
 msgid "Preview length"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:105
+#: modules/src/class-paid-admin.php:115
 msgid "Blocks shown before the paywall when the issue has no More block."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:106
+#: modules/src/class-paid-admin.php:116
 msgid "Grace period (days)"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:106
+#: modules/src/class-paid-admin.php:116
 msgid "How long a subscription keeps access after a missed renewal date while FluentCart retries the payment."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:107
+#: modules/src/class-paid-admin.php:117
 msgid "Remember readers for (days)"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:107
+#: modules/src/class-paid-admin.php:117
 msgid "How long a reading link keeps a browser signed in. Access still ends when the subscription does."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:108
+#: modules/src/class-paid-admin.php:118
 msgid "Purchases"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:108
+#: modules/src/class-paid-admin.php:118
 msgid "Re-subscribe a contact who had unsubscribed when they buy a paid plan"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:108
+#: modules/src/class-paid-admin.php:118
 msgid "Buying the paid newsletter is a direct request to receive it. Bounced and complaint contacts are never changed. The purchase is saved as consent evidence on the contact."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:109
+#: modules/src/class-paid-admin.php:119
 msgid "Free issues"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:109
+#: modules/src/class-paid-admin.php:119
 msgid "Also add paying readers to the free newsletter lists"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:109
+#: modules/src/class-paid-admin.php:119
 msgid "So they keep getting free issues. They stay on those lists after a paid plan ends."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:111
+#: modules/src/class-paid-admin.php:121
 msgid "Plans on the site"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:112
-msgid "Show the paid plans on the newsletter page, under the signup card"
+#: modules/src/class-paid-admin.php:122
+msgid "Show the plans on the newsletter page, under the signup card"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:113
+#: modules/src/class-paid-admin.php:123
 msgid "Plans heading"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:114
+#: modules/src/class-paid-admin.php:124
 msgid "Plans intro"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:114
+#: modules/src/class-paid-admin.php:124
 msgid "One or two sentences on what paying readers get. Shown on the paywall and with the plans."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:115
+#: modules/src/class-paid-admin.php:125
 msgid "Shortcodes"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:115
+#: modules/src/class-paid-admin.php:125
 msgid "Plans anywhere on the site, and an account box that shows a reader their access or emails them a reading link."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:124
+#: modules/src/class-paid-admin.php:133
+#: modules/src/class-paid-admin.php:146
+msgid "New tier"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:138
 msgid "Tier name"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:124
-msgid "Supporter"
+#: modules/src/class-paid-admin.php:138
+msgid "Tier name, e.g. Insider"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:125
-msgid "auto"
+#. translators: %s: tier key
+#: modules/src/class-paid-admin.php:142
+msgid "Issues store this key, so it never changes."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:125
-msgid "Issues store this key, so it cannot change."
+#. translators: %s: tier key
+#: modules/src/class-paid-admin.php:142
+#, php-format
+msgid "key: %s"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:126
-msgid "— None —"
-msgstr ""
-
-#: modules/src/class-paid-admin.php:126
-msgid "Create a new list for this tier"
-msgstr ""
-
-#: modules/src/class-paid-admin.php:130
-msgid "MailerPress list"
-msgstr ""
-
-#. translators: %d: number of readers
-#: modules/src/class-paid-admin.php:133
+#. translators: %d: active readers
+#: modules/src/class-paid-admin.php:144
 #, php-format
 msgid "%d active reader"
 msgid_plural "%d active readers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: modules/src/class-paid-admin.php:135
+#: modules/src/class-paid-admin.php:149
 msgid "Remove tier"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:137
+#: modules/src/class-paid-admin.php:152
 msgid "What readers get"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:137
+#: modules/src/class-paid-admin.php:152
 msgid "Every paid issue, the full archive, and…"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:139
-msgid "FluentCart plan"
-msgstr ""
-
-#: modules/src/class-paid-admin.php:139
-msgid "Access length"
-msgstr ""
-
-#: modules/src/class-paid-admin.php:139
-msgid "Button label"
-msgstr ""
-
-#: modules/src/class-paid-admin.php:143
-msgid "Add a plan"
-msgstr ""
-
-#: modules/src/class-paid-admin.php:151
-msgid "Free tier name"
-msgstr ""
-
 #: modules/src/class-paid-admin.php:152
-msgid "What free readers get"
+msgid "Shown on the tier’s card in the plans and on the FluentCart product."
 msgstr ""
 
 #: modules/src/class-paid-admin.php:153
-msgid "Free issues go to the lists chosen on the MailerPress tab, and readers join through your signup form. Free is always the first tier and costs nothing."
+msgid "— No list —"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:154
-msgid "Show a Free card next to the paid plans (on the newsletter page and in [mailerhive_plans])"
+#: modules/src/class-paid-admin.php:153
+msgid "+ Create a list for this tier"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:157
+msgid "MailerPress list"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:157
+msgid "Paying readers are added here while their access lasts and removed when it ends. Drafts for this tier’s issues go to this list and the lists of higher tiers."
+msgstr ""
+
+#: modules/src/class-paid-admin.php:162
+msgid "Plans"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:162
+#: modules/src/class-paid-admin.php:283
+msgid "FluentCart price"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:162
+#: modules/src/class-paid-admin.php:315
+msgid "Button label"
 msgstr ""
 
 #: modules/src/class-paid-admin.php:163
-msgid "FluentCart product:"
+msgid "No plans yet. Create a FluentCart product above, or add a price from an existing product."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:166
-msgid "Activate FluentCart to create a product for this tier in one click."
+#: modules/src/class-paid-admin.php:167
+msgid "Add a price from an existing product"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:174
-msgid "Lifetime price (one time)"
+#: modules/src/class-paid-admin.php:173
+msgid "Free tier"
 msgstr ""
 
-#. translators: %s: Monthly or Yearly
-#: modules/src/class-paid-admin.php:174
-#, php-format
-msgid "%s price"
+#: modules/src/class-paid-admin.php:175
+msgid "Free tier name"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:176
+msgid "Always first, no charge"
 msgstr ""
 
 #: modules/src/class-paid-admin.php:178
-msgid "skip"
+msgid "What free readers get"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:186
-msgid "Create another FluentCart product"
+#: modules/src/class-paid-admin.php:178
+msgid "Defaults to the tagline."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:186
+#. translators: %s: link to the MailerPress tab
+#: modules/src/class-paid-admin.php:180
+msgid "Delivery"
+msgstr ""
+
+#. translators: %s: link to the MailerPress tab
+#: modules/src/class-paid-admin.php:180
+#, php-format
+msgid "Free issues go to the lists on the <a href=\"%s\">MailerPress tab</a>, and readers join through the signup form on the General tab."
+msgstr ""
+
+#: modules/src/class-paid-admin.php:182
+msgid "Show a Free card next to the paid plans"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:190
+msgid "Activate FluentCart to create a product for this tier in one click."
+msgstr ""
+
+#: modules/src/class-paid-admin.php:196
+msgid "/ month"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:196
+msgid "/ year"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:196
+msgid "once"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:216
 msgid "Create FluentCart product"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:188
-msgid "Saves the settings, creates a published product with these prices (empty prices are skipped), and adds them to this tier. Edit the product, checkout and tax settings in FluentCart afterwards."
+#: modules/src/class-paid-admin.php:216
+msgid "Create product"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:217
+#: modules/src/class-paid-admin.php:218
+msgid "Leave a price empty to skip it. Saves your settings too."
+msgstr ""
+
+#: modules/src/class-paid-admin.php:222
+msgid "Published"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:223
+msgid "FluentCart product"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:225
+msgid "Edit in FluentCart"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:226
+msgid "Create another product with different prices"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:231
+msgid "Sell this tier"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:231
+msgid "One click creates a published FluentCart product with these prices and adds them to the plans below."
+msgstr ""
+
+#: modules/src/class-paid-admin.php:262
 msgid "Give the tier a name before creating its product."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:238
-msgid "— Choose a product and price —"
+#: modules/src/class-paid-admin.php:283
+msgid "— Choose a product price —"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:245
-msgid "subscription"
+#: modules/src/class-paid-admin.php:290
+msgid "one time"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:245
-msgid "one-time"
+#: modules/src/class-paid-admin.php:296
+msgid "Unit"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:252
+#: modules/src/class-paid-admin.php:297
 msgid "days"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:252
+#: modules/src/class-paid-admin.php:297
 msgid "weeks"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:252
+#: modules/src/class-paid-admin.php:297
 msgid "months"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:252
+#: modules/src/class-paid-admin.php:297
 msgid "years"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:260
+#: modules/src/class-paid-admin.php:305
 msgid "Follows the subscription"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:265
-msgid "0 = lifetime access"
+#: modules/src/class-paid-admin.php:309
+msgid "Access length"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:268
-msgid "Variation title"
+#: modules/src/class-paid-admin.php:311
+msgid "0 = lifetime"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:269
-msgid "Remove"
+#: modules/src/class-paid-admin.php:314
+msgid "Price name"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:284
+#: modules/src/class-paid-admin.php:316
+msgid "Remove plan"
+msgstr ""
+
+#: modules/src/class-paid-admin.php:401
 msgid "Remove this tier? Issues set to it become free, and its readers are taken off its list at their next update."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:341
-#: modules/src/class-paid-admin.php:407
+#: modules/src/class-paid-admin.php:458
+#: modules/src/class-paid-admin.php:524
 msgid "Paid members"
 msgstr ""
 
 #. translators: 1: email, 2: tier
-#: modules/src/class-paid-admin.php:362
+#: modules/src/class-paid-admin.php:479
 #, php-format
 msgid "%1$s now has %2$s access."
 msgstr ""
 
 #. translators: 1: email, 2: tier
-#: modules/src/class-paid-admin.php:362
+#: modules/src/class-paid-admin.php:479
 msgid "Enter a valid email and tier."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:364
+#: modules/src/class-paid-admin.php:481
 msgid "Access revoked."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:364
+#: modules/src/class-paid-admin.php:481
 msgid "Only manual grants can be revoked here. Cancel or refund FluentCart purchases in FluentCart."
 msgstr ""
 
 #. translators: %d: number of customers
-#: modules/src/class-paid-admin.php:367
+#: modules/src/class-paid-admin.php:484
 #, php-format
 msgid "Re-checked %d FluentCart customer(s)."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:414
+#: modules/src/class-paid-admin.php:531
 msgid "Set up a paid tier first."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:427
+#: modules/src/class-paid-admin.php:544
 msgid "All tiers"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:432
+#: modules/src/class-paid-admin.php:549
 msgid "Ended"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:432
+#: modules/src/class-paid-admin.php:549
 msgid "All"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:435
-#: modules/src/class-paid-admin.php:439
+#: modules/src/class-paid-admin.php:552
+#: modules/src/class-paid-admin.php:556
 msgid "Email"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:436
+#: modules/src/class-paid-admin.php:553
 msgid "Filter"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:439
+#: modules/src/class-paid-admin.php:556
 msgid "Tier"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:439
+#: modules/src/class-paid-admin.php:556
 msgid "Source"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:439
+#: modules/src/class-paid-admin.php:556
 msgid "Started"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:441
+#: modules/src/class-paid-admin.php:558
 msgid "No members match."
 msgstr ""
 
 #. translators: %d: id
-#: modules/src/class-paid-admin.php:446
+#: modules/src/class-paid-admin.php:563
 #, php-format
 msgid "Subscription #%d"
 msgstr ""
 
 #. translators: %d: id
-#: modules/src/class-paid-admin.php:448
+#: modules/src/class-paid-admin.php:565
 #, php-format
 msgid "Order #%d"
 msgstr ""
 
 #. translators: %d: id
-#: modules/src/class-paid-admin.php:448
+#: modules/src/class-paid-admin.php:565
 msgid "lifetime"
 msgstr ""
 
 #. translators: %d: id
-#: modules/src/class-paid-admin.php:448
+#: modules/src/class-paid-admin.php:565
 msgid "fixed term"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:450
+#: modules/src/class-paid-admin.php:567
 msgid "Manual"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:454
+#: modules/src/class-paid-admin.php:571
 msgid "Revoke"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:472
+#: modules/src/class-paid-admin.php:589
 msgid "Give access by hand"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:472
+#: modules/src/class-paid-admin.php:589
 msgid "For comps, gifts and team members. Leave the date empty for access with no end."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:476
+#: modules/src/class-paid-admin.php:593
 msgid "reader@example.com"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:480
+#: modules/src/class-paid-admin.php:597
 msgid "Until"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:480
+#: modules/src/class-paid-admin.php:597
 msgid "Note (optional)"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:481
+#: modules/src/class-paid-admin.php:598
 msgid "Give access"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:484
+#: modules/src/class-paid-admin.php:601
 msgid "Re-check FluentCart"
 msgstr ""
 
-#: modules/src/class-paid-admin.php:486
+#: modules/src/class-paid-admin.php:603
 msgid "Rebuilds every paid reader from FluentCart orders and subscriptions, then updates their MailerPress lists and tags. Safe to run any time."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:487
+#: modules/src/class-paid-admin.php:604
 msgid "Re-check all purchases"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:176
+#: modules/src/class-paid-plans.php:246
 msgid "per day"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:177
+#: modules/src/class-paid-plans.php:247
 msgid "per week"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:178
+#: modules/src/class-paid-plans.php:248
 msgid "per month"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:179
+#: modules/src/class-paid-plans.php:249
 msgid "per quarter"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:180
+#: modules/src/class-paid-plans.php:250
 msgid "every 6 months"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:181
+#: modules/src/class-paid-plans.php:251
 msgid "per year"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:183
+#: modules/src/class-paid-plans.php:253
 msgid "recurring"
 msgstr ""
 
-#: modules/src/class-paid-plans.php:187
+#: modules/src/class-paid-plans.php:257
 msgid "one time, no renewal"
 msgstr ""
 
 #. translators: %d: number of days
-#: modules/src/class-paid-plans.php:191
+#: modules/src/class-paid-plans.php:261
 #, php-format
 msgid "for %d day"
 msgid_plural "for %d days"
@@ -1394,7 +1471,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of weeks
-#: modules/src/class-paid-plans.php:193
+#: modules/src/class-paid-plans.php:263
 #, php-format
 msgid "for %d week"
 msgid_plural "for %d weeks"
@@ -1402,7 +1479,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of months
-#: modules/src/class-paid-plans.php:195
+#: modules/src/class-paid-plans.php:265
 #, php-format
 msgid "for %d month"
 msgid_plural "for %d months"
@@ -1410,7 +1487,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of years
-#: modules/src/class-paid-plans.php:197
+#: modules/src/class-paid-plans.php:267
 #, php-format
 msgid "for %d year"
 msgid_plural "for %d years"
@@ -1418,7 +1495,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-plans.php:224
+#: modules/src/class-paid-plans.php:294
 #, php-format
 msgid "%s subscribers"
 msgstr ""

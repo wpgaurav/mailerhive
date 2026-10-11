@@ -4,7 +4,7 @@ Tags: newsletter, mailerpress, email archive, substack import, beehiiv
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
     wp mailerhive paid members|reconcile|sweep|grant|revoke|access [<args>]
 
 == Changelog ==
+
+= 1.4.1 =
+* Plan prices follow GT Extensions for FluentCart multi-currency: pages show the store currency, then each visitor's own price (price book or exchange rate), matching checkout. Fixes ₹5 shown for a $5 plan.
+* Redesigned Paid tab: tier ladder, tier cards, a product panel with currency-aware price fields, and cleaner plan rows.
 
 = 1.4.0 =
 * Paid subscriptions module: sell tiered newsletter access through FluentCart, with default Free and Paid tiers, one-click FluentCart products, subscription, fixed-term and lifetime plans, a paywall with plans and reading links, tier lists and tags in MailerPress, a Paid members screen, and `wp mailerhive paid`.

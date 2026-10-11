@@ -45,6 +45,8 @@ final class Access {
 		add_action( 'wp_head', array( __CLASS__, 'schema' ), 5 );
 		add_action( 'wp_ajax_mailerhive_unlock', array( __CLASS__, 'ajax_unlock' ) );
 		add_action( 'wp_ajax_nopriv_mailerhive_unlock', array( __CLASS__, 'ajax_unlock' ) );
+		add_action( 'wp_ajax_mailerhive_prices', array( __CLASS__, 'ajax_prices' ) );
+		add_action( 'wp_ajax_nopriv_mailerhive_prices', array( __CLASS__, 'ajax_prices' ) );
 		add_action( 'admin_post_mailerhive_reader_link', array( __CLASS__, 'request_link' ) );
 		add_action( 'admin_post_nopriv_mailerhive_reader_link', array( __CLASS__, 'request_link' ) );
 		add_action( 'admin_post_mailerhive_reader_signout', array( __CLASS__, 'sign_out' ) );
@@ -395,12 +397,13 @@ final class Access {
 				}
 				$label    = '' !== (string) ( $plan['label'] ?? '' ) ? (string) $plan['label'] : $var['title'];
 				$buttons .= sprintf(
-					'<li><a class="mh-plan" href="%1$s"><span class="mh-plan__name">%2$s</span><span class="mh-plan__price"><b>%3$s</b> <small>%4$s</small></span><span class="mh-plan__go">%5$s</span></a></li>',
+					'<li><a class="mh-plan" href="%1$s"><span class="mh-plan__name">%2$s</span><span class="mh-plan__price"><b data-mh-price="%6$d">%3$s</b> <small>%4$s</small></span><span class="mh-plan__go">%5$s</span></a></li>',
 					esc_url( Plans::checkout_url( (int) $var['id'] ) ),
 					esc_html( $label ),
 					esc_html( Plans::price( (int) $var['price'] ) ),
 					esc_html( Plans::terms_label( $plan, $var ) ),
-					Icons::get( 'arrow-right' )
+					Icons::get( 'arrow-right' ),
+					(int) $var['id']
 				);
 			}
 			if ( '' === $buttons ) {
@@ -413,7 +416,43 @@ final class Access {
 		if ( '' === $cards || $cards === $free_only ) {
 			return '';
 		}
-		return ( $heading ? '<h2 class="mh-plans__h">' . esc_html( $heading ) . '</h2>' : '' ) . '<div class="mh-tiers">' . $cards . '</div>';
+		return ( $heading ? '<h2 class="mh-plans__h">' . esc_html( $heading ) . '</h2>' : '' ) . '<div class="mh-tiers">' . $cards . '</div>' . self::currency_script();
+	}
+
+	/**
+	 * Plans render in the store currency so cached pages are identical for everyone.
+	 * With GT Extensions' multi-currency on, the page then asks admin-ajax (never
+	 * cached) for this visitor's prices and swaps them in, matching checkout.
+	 */
+	private static function currency_script(): string {
+		static $done = false;
+		if ( $done || ! Plans::multi_currency() ) {
+			return '';
+		}
+		$done = true;
+		return '<script>!function(){var els=document.querySelectorAll("[data-mh-price]");if(!els.length)return;var ids=[];els.forEach(function(e){ids.push(e.getAttribute("data-mh-price"))});var f=new FormData();f.append("action","mailerhive_prices");f.append("ids",ids.join(","));fetch(' . wp_json_encode( admin_url( 'admin-ajax.php' ) ) . ',{method:"POST",body:f,credentials:"same-origin",cache:"no-store"}).then(function(r){return r.json()}).then(function(r){if(!r||!r.success||!r.data.prices)return;document.querySelectorAll("[data-mh-price]").forEach(function(e){var p=r.data.prices[e.getAttribute("data-mh-price")];if(p){e.textContent=p}})}).catch(function(){})}();</script>';
+	}
+
+	/** admin-ajax: this visitor's prices for the given variations, in their currency. */
+	public static function ajax_prices(): void {
+		nocache_headers();
+		$module = Plans::multi_currency();
+		if ( ! $module ) {
+			wp_send_json_error( null, 404 );
+		}
+		$currency = (string) $module->getCurrentCurrency();
+		$mapped   = Plans::by_variation();
+		$ids      = array_slice( array_unique( array_map( 'absint', explode( ',', sanitize_text_field( wp_unslash( $_POST['ids'] ?? '' ) ) ) ) ), 0, 50 ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- public, read-only prices.
+		$prices   = array();
+		foreach ( $ids as $id ) {
+			if ( isset( $mapped[ $id ] ) ) {
+				$price = Plans::price_in( $id, $currency );
+				if ( '' !== $price ) {
+					$prices[ $id ] = $price;
+				}
+			}
+		}
+		wp_send_json_success( array( 'currency' => $currency, 'prices' => $prices ) );
 	}
 
 	public static function landing_plans(): void {
