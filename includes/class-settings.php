@@ -557,7 +557,7 @@ final class Settings {
 	private static function tab_design( array $s ): void {
 		self::check( $s, 'detach_theme', 'Theme isolation', 'Detach theme styles, scripts and hooks on MailerHive pages', 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.' );
 		self::check( $s, 'shell_mailerpress_pages', 'Subscription pages', 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell' );
-		self::select( $s, 'color_scheme', 'Colour scheme', array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
+		self::select( $s, 'color_scheme', 'Color scheme', array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
 		self::check( $s, 'show_theme_toggle', 'Theme toggle', 'Show a light/dark toggle in the header', 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.' );
 		self::text( $s, 'accent_light', 'Accent (light)', '', 'small-text', 'color' );
 		self::text( $s, 'accent_dark', 'Accent (dark)', 'Used for buttons and links on dark backgrounds.', 'small-text', 'color' );

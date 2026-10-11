@@ -343,7 +343,7 @@ final class Shell {
 				<a href="<?php echo esc_url( self::link_href( $link[1] ) ); ?>"><?php echo esc_html( $link[0] ); ?></a>
 			<?php endforeach; ?>
 			<?php if ( self::toggle_enabled() ) : ?>
-				<button type="button" class="mh-theme" aria-pressed="false" aria-label="Switch colour mode">
+				<button type="button" class="mh-theme" aria-pressed="false" aria-label="Switch color mode">
 					<svg class="mh-theme__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"/></svg>
 					<svg class="mh-theme__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/></svg>
 				</button>
