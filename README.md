@@ -24,6 +24,10 @@ Beehiiv- and Ghost-style newsletter publishing for WordPress and [MailerPress](h
 - MailerPress (and MailerPress Pro for some features) for email drafts and mirroring. The archive and reading pages work without it.
 - Core Forms for the signup form and the consent module (optional).
 
+## Updates and license
+
+MailerHive updates itself through the normal WordPress plugin screen once a free license is active under **Newsletter → Settings → License**. Get a key at [gauravtiwari.org/product/mailerhive](https://gauravtiwari.org/product/mailerhive/). Every feature works without a license; only automatic updates need one.
+
 ## Installation
 
 1. Download the latest release zip, or clone this repo into `wp-content/plugins/mailerhive`.

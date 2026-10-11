@@ -32,6 +32,7 @@ final class Settings {
 		'mailerpress' => 'MailerPress',
 		'analytics'   => 'Analytics',
 		'modules'     => 'Modules',
+		'license'     => 'License',
 		'tools'       => 'Tools & status',
 	);
 
@@ -113,6 +114,8 @@ final class Settings {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_post_mailerhive_tool', array( __CLASS__, 'run_tool' ) );
+		add_action( 'admin_post_mailerhive_license', array( __CLASS__, 'license_action' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'license_notice' ) );
 		add_action( 'init', array( __CLASS__, 'maybe_flush' ), 99 );
 		add_filter( 'plugin_action_links_' . plugin_basename( MAILERHIVE_FILE ), array( __CLASS__, 'action_links' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );
@@ -512,6 +515,11 @@ final class Settings {
 			echo '</div>';
 			return;
 		}
+		if ( 'license' === $tab ) {
+			self::license_tab();
+			echo '</div>';
+			return;
+		}
 
 		echo '<form method="post" action="options.php">';
 		settings_fields( 'mailerhive' );
@@ -782,6 +790,86 @@ final class Settings {
 		update_option( \MailerHive\Modules\Consent_Policy::OPTION, $policy, false );
 		/* translators: %s: form title */
 		return sprintf( __( '“%s” is registered with the consent policy.', 'mailerhive' ), $post->post_title );
+	}
+
+	/* ---------- license ---------- */
+
+	public static function license_action(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Not allowed.', 'mailerhive' ) );
+		}
+		check_admin_referer( 'mailerhive_license' );
+		$license = new \MailerHive\Licensing\License();
+		$op      = sanitize_key( wp_unslash( $_POST['op'] ?? '' ) );
+		if ( 'activate' === $op ) {
+			$result = $license->activate( (string) wp_unslash( $_POST['license_key'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated and encrypted in activate().
+			$ok     = __( 'License activated. This site now gets MailerHive updates.', 'mailerhive' );
+		} elseif ( 'check' === $op ) {
+			$result = $license->check();
+			$ok     = __( 'License is active.', 'mailerhive' );
+		} else {
+			$result = $license->disconnect();
+			$ok     = __( 'License disconnected from this site.', 'mailerhive' );
+		}
+		set_transient( 'mailerhive_notice_' . get_current_user_id(), is_wp_error( $result ) ? $result->get_error_message() : $ok, 60 );
+		wp_safe_redirect( add_query_arg( 'tab', 'license', self::url() ) );
+		exit;
+	}
+
+	/** One quiet reminder on the plugins screen and MailerHive pages until a license is active. */
+	public static function license_notice(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! current_user_can( 'manage_options' ) || ! in_array( $screen->id, array( 'plugins', 'mh_issue_page_mailerhive', 'edit-mh_issue' ), true ) ) {
+			return;
+		}
+		if ( 'valid' === ( ( new \MailerHive\Licensing\License() )->state()['status'] ?? '' ) || ( isset( $_GET['tab'] ) && 'license' === $_GET['tab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+		printf(
+			'<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
+			esc_html__( 'Activate your free MailerHive license to get automatic updates.', 'mailerhive' ),
+			esc_url( add_query_arg( 'tab', 'license', self::url() ) ),
+			esc_html__( 'Activate license', 'mailerhive' )
+		);
+	}
+
+	private static function license_tab(): void {
+		$license = new \MailerHive\Licensing\License();
+		$state   = $license->state();
+		$form    = static function ( string $op, string $label, string $class = 'secondary', string $extra = '' ): void {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin:0 .5rem .5rem 0">';
+			wp_nonce_field( 'mailerhive_license' );
+			echo '<input type="hidden" name="action" value="mailerhive_license"><input type="hidden" name="op" value="' . esc_attr( $op ) . '">';
+			echo $extra; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup.
+			submit_button( $label, $class, 'submit', false );
+			echo '</form>';
+		};
+		echo '<h2>' . esc_html__( 'License', 'mailerhive' ) . '</h2>';
+		echo '<p>' . esc_html__( 'The license only unlocks automatic updates. Every MailerHive feature works without it.', 'mailerhive' ) . '</p>';
+		if ( $state ) {
+			$valid = 'valid' === ( $state['status'] ?? '' );
+			echo '<table class="widefat striped" style="max-width:640px"><tbody>';
+			echo '<tr><th style="width:180px">' . esc_html__( 'Status', 'mailerhive' ) . '</th><td>' . ( $valid ? '<strong style="color:#008a20">' . esc_html__( 'Active', 'mailerhive' ) . '</strong>' : '<strong style="color:#b32d2e">' . esc_html__( 'Inactive', 'mailerhive' ) . '</strong>' ) . '</td></tr>';
+			echo '<tr><th>' . esc_html__( 'Key', 'mailerhive' ) . '</th><td><code>&bull;&bull;&bull;&bull;' . esc_html( (string) ( $state['suffix'] ?? '' ) ) . '</code></td></tr>';
+			if ( ! empty( $state['plan'] ) ) {
+				echo '<tr><th>' . esc_html__( 'Plan', 'mailerhive' ) . '</th><td>' . esc_html( (string) $state['plan'] ) . '</td></tr>';
+			}
+			echo '<tr><th>' . esc_html__( 'Expires', 'mailerhive' ) . '</th><td>' . esc_html( ! empty( $state['expires'] ) && 'lifetime' !== $state['expires'] ? (string) $state['expires'] : __( 'Never', 'mailerhive' ) ) . '</td></tr>';
+			if ( ! empty( $state['checked_at'] ) ) {
+				echo '<tr><th>' . esc_html__( 'Last checked', 'mailerhive' ) . '</th><td>' . esc_html( wp_date( 'M j, Y H:i', (int) $state['checked_at'] ) ) . '</td></tr>';
+			}
+			echo '</tbody></table><p></p>';
+			$form( 'check', __( 'Check license', 'mailerhive' ) );
+			$form( 'disconnect', __( 'Disconnect from this site', 'mailerhive' ) );
+		} else {
+			$form( 'activate', __( 'Activate license', 'mailerhive' ), 'primary', '<p><label for="mh-license-key"><strong>' . esc_html__( 'License key', 'mailerhive' ) . '</strong></label><br><input type="password" id="mh-license-key" name="license_key" class="regular-text code" autocomplete="off" spellcheck="false" required></p>' );
+			printf(
+				'<p class="description">%s <a href="%s" target="_blank" rel="noopener">%s</a></p>',
+				esc_html__( 'No key yet? The license is free, for unlimited sites.', 'mailerhive' ),
+				esc_url( \MailerHive\Licensing\Client::PAGE ),
+				esc_html__( 'Get your free license', 'mailerhive' )
+			);
+		}
 	}
 
 	private static function tools_tab(): void {
