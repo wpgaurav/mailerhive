@@ -110,6 +110,11 @@ final class Shell {
 		return '';
 	}
 
+	public static function late_detach(): void {
+		self::detach_theme();
+		remove_action( 'wp_head', 'wp_custom_css_cb', 101 ); // Customizer CSS belongs to the theme.
+	}
+
 	private static function detach_theme(): void {
 		global $wp_filter;
 		$root = wp_normalize_path( (string) realpath( get_theme_root() ) );
@@ -183,11 +188,11 @@ final class Shell {
 	}
 
 	public static function template( string $template ): string {
-		// Detach here, not at template_redirect: the theme registers some head and
-		// footer callbacks during template_redirect, which has finished by now.
+		// Detach at the very start of wp_head: the theme keeps registering head, asset
+		// and footer callbacks through template_redirect and its own late
+		// template_include runtime, all of which have run by then.
 		if ( self::context() && Settings::on( 'detach_theme' ) ) {
-			self::detach_theme();
-			remove_action( 'wp_head', 'wp_custom_css_cb', 101 ); // Customizer CSS belongs to the theme.
+			add_action( 'wp_head', array( __CLASS__, 'late_detach' ), PHP_INT_MIN );
 		}
 		switch ( self::context() ) {
 			case 'issue':
