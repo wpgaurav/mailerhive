@@ -13,7 +13,7 @@ final class Updater {
 	const SLUG          = 'mailerhive';
 	const CACHE         = 'mailerhive_update_metadata';
 	const CACHE_SECONDS = 10800; // three hours between store checks
-	const ICON          = 'https://r2.gauravtiwari.org/wp-content/uploads/2026/10/mailerhive-icon-512-20261011.png';
+	const ICON          = 'https://r2.gauravtiwari.org/wp-content/uploads/2026/10/mailerhive-product-icon-512-20261011.png';
 	const BANNER        = 'https://r2.gauravtiwari.org/wp-content/uploads/2026/10/mailerhive-banner-1544x500-20261011.png';
 
 	private static $fetching  = false;
