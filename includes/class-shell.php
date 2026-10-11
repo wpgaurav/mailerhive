@@ -84,10 +84,8 @@ final class Shell {
 			wp_safe_redirect( get_post_type_archive_link( Issues::TYPE ), 301 );
 			exit;
 		}
-		if ( Settings::on( 'detach_theme' ) ) {
-			self::detach_theme();
-		}
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), PHP_INT_MAX );
+		add_action( 'wp_footer', array( __CLASS__, 'dequeue_theme_assets' ), 19 );
 		add_action( 'wp_head', array( __CLASS__, 'head_html' ), 99 );
 		add_action( 'wp_footer', array( __CLASS__, 'rybbit' ), 50 );
 	}
@@ -133,24 +131,26 @@ final class Shell {
 		}
 	}
 
-	public static function assets(): void {
-		if ( Settings::on( 'detach_theme' ) ) {
-			$theme_uris = array( get_theme_root_uri(), content_url( '/themes' ) );
-			foreach ( array( wp_styles(), wp_scripts() ) as $deps ) {
-				foreach ( $deps->queue as $handle ) {
-					$src = (string) ( $deps->registered[ $handle ]->src ?? '' );
-					foreach ( $theme_uris as $uri ) {
-						if ( $src && str_starts_with( $src, $uri ) ) {
-							$deps instanceof \WP_Styles ? wp_dequeue_style( $handle ) : wp_dequeue_script( $handle );
-						}
-					}
+	public static function dequeue_theme_assets(): void {
+		if ( ! Settings::on( 'detach_theme' ) ) {
+			return;
+		}
+		foreach ( array( wp_styles(), wp_scripts() ) as $deps ) {
+			foreach ( $deps->queue as $handle ) {
+				$src = (string) ( $deps->registered[ $handle ]->src ?? '' );
+				if ( $src && str_contains( $src, '/wp-content/themes/' ) ) {
+					$deps instanceof \WP_Styles ? wp_dequeue_style( $handle ) : wp_dequeue_script( $handle );
 				}
 			}
-			// theme.json output belongs to the theme too.
-			foreach ( array( 'global-styles', 'classic-theme-styles', 'core-block-supports' ) as $handle ) {
-				wp_dequeue_style( $handle );
-			}
 		}
+		// theme.json output belongs to the theme too.
+		foreach ( array( 'global-styles', 'classic-theme-styles', 'core-block-supports' ) as $handle ) {
+			wp_dequeue_style( $handle );
+		}
+	}
+
+	public static function assets(): void {
+		self::dequeue_theme_assets();
 		$file = MAILERHIVE_DIR . 'assets/mailerhive.css';
 		wp_enqueue_style( 'mailerhive', MAILERHIVE_URL . 'assets/mailerhive.css', array(), (string) filemtime( $file ) );
 		wp_add_inline_style( 'mailerhive', self::inline_css() );
@@ -183,6 +183,12 @@ final class Shell {
 	}
 
 	public static function template( string $template ): string {
+		// Detach here, not at template_redirect: the theme registers some head and
+		// footer callbacks during template_redirect, which has finished by now.
+		if ( self::context() && Settings::on( 'detach_theme' ) ) {
+			self::detach_theme();
+			remove_action( 'wp_head', 'wp_custom_css_cb', 101 ); // Customizer CSS belongs to the theme.
+		}
 		switch ( self::context() ) {
 			case 'issue':
 				return MAILERHIVE_DIR . 'templates/issue.php';
