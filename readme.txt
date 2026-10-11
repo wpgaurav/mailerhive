@@ -4,7 +4,7 @@ Tags: newsletter, mailerpress, email archive, substack import, beehiiv
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,9 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
     wp mailerhive paid members|reconcile|sweep|grant|revoke|access [<args>]
 
 == Changelog ==
+
+= 1.4.2 =
+* Consent policy works with MailerPress sign-up confirmation (double opt-in): new signups are added as pending and MailerPress emails the confirmation link; pending or previously unsubscribed addresses that sign up again get a fresh confirmation email and stay pending until they confirm. Bounces, complaints and suppression tags are still preserved. Before this, turning confirmation on made every registered form reject signups.
 
 = 1.4.1 =
 * Plan prices follow GT Extensions for FluentCart multi-currency: pages show the store currency, then each visitor's own price (price book or exchange rate), matching checkout. Fixes ₹5 shown for a $5 plan.

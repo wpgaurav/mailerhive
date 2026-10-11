@@ -7,6 +7,12 @@
  * contract, its consent checkbox carries the exact disclosure on record, the
  * submission is not spam, and existing opt-outs or suppression tags are preserved.
  * Consent evidence (form, timestamp, version, disclosure) is written to the contact.
+ *
+ * When MailerPress sign-up confirmation is on, every route runs as double opt-in: the
+ * contact is created as pending and MailerPress emails the confirmation link. A pending
+ * or previously unsubscribed address that submits again gets a fresh confirmation email
+ * and stays pending until it is confirmed. With confirmation off, the original no-send
+ * rules apply: contacts are added as subscribed and nothing is emailed.
  */
 
 namespace MailerHive\Modules;
@@ -38,6 +44,12 @@ final class Consent_Policy {
             }
         }
         add_action('cf_output_form_action_mailerpress_settings', [self::class, 'explain'], 30, 2);
+    }
+
+    /** MailerPress "Sign-up confirmation" (double opt-in) is switched on. */
+    public static function confirmation_on(): bool {
+        $confirmation = function_exists('mailerpress_get_signup_confirmation_option') ? mailerpress_get_signup_confirmation_option() : null;
+        return is_array($confirmation) && !empty($confirmation['enableSignupConfirmation']);
     }
 
     public static function version(): string {
@@ -100,10 +112,10 @@ final class Consent_Policy {
             }
             $email = $submission->data[$rule['email_field']] ?? null;
             if (!is_string($email) || !is_email($email)) return self::fail('The configured MailerPress email field is missing or invalid.');
-            if (!empty($settings['double_optin'])) return self::fail('Confirmation sending is disabled for these forms.');
-            $confirmation = mailerpress_get_signup_confirmation_option();
-            if (!empty($policy['no_send'])) {
-                if (!is_array($confirmation) || !empty($confirmation['enableSignupConfirmation'])) return self::fail('MailerPress confirmation settings require review before capture.');
+            $confirm = self::confirmation_on();
+            if (!$confirm && !empty($settings['double_optin'])) return self::fail('Confirmation sending is disabled for these forms.');
+            if (!$confirm && !empty($policy['no_send'])) {
+                if (!is_array(mailerpress_get_signup_confirmation_option())) return self::fail('MailerPress confirmation settings require review before capture.');
                 $active = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}mailerpress_automations WHERE UPPER(status) NOT IN ('DRAFT','DISABLED','INACTIVE')");
                 if ($wpdb->last_error || $active === null || (int)$active > 0) return self::fail('MailerPress automation state requires review before capture.');
             }
@@ -117,7 +129,10 @@ final class Consent_Policy {
             $contact = (new \MailerPress\Models\Contacts())->getContactByEmail($email);
             if ($wpdb->last_error) return self::fail('MailerPress contact status could not be checked.');
             if ($contact) {
-                if (($contact->subscription_status ?? '') !== 'subscribed' || in_array(strtolower((string)($contact->engagement_status ?? '')), ['bounced','invalid','suppressed','complained','spam'], true)) {
+                // With confirmation on, a pending or unsubscribed address that gives consent
+                // again only receives a confirmation email; it stays pending until confirmed.
+                $allowed = $confirm ? ['subscribed', 'pending', 'unsubscribed'] : ['subscribed'];
+                if (!in_array((string)($contact->subscription_status ?? ''), $allowed, true) || in_array(strtolower((string)($contact->engagement_status ?? '')), ['bounced','invalid','suppressed','complained','spam'], true)) {
                     return self::skip('The existing MailerPress opt-out or suppression status was preserved.');
                 }
                 $suppressed = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}mailerpress_contact_tags ct JOIN {$wpdb->prefix}mailerpress_tags t ON t.tag_id = ct.tag_id WHERE ct.contact_id = %d AND t.name LIKE %s", (int)$contact->contact_id, 'Suppression:%'));
@@ -126,10 +141,13 @@ final class Consent_Policy {
             }
             // The plugin remains the sole contact/list integration owner. This
             // filter narrows its data and supplies the site's consent evidence.
-            $filter = static function ($data, $submitted, $target) use ($submission, $form, $rule, $route, $contact) {
+            // A returning unsubscribed address moves to pending (never straight to subscribed)
+            // so the confirmation link it is emailed can complete the signup.
+            $reconfirm = $confirm && $contact && 'unsubscribed' === ($contact->subscription_status ?? '');
+            $filter = static function ($data, $submitted, $target) use ($submission, $form, $rule, $route, $contact, $reconfirm) {
                 if ($submitted !== $submission || (int)$target->ID !== (int)$form->ID) return $data;
                 $data['tags'] = array_map(static fn($id) => ['id'=>(int)$id], array_keys($route['tags']));
-                $data['update_contact_fields'] = false; // Never change an existing status, including a concurrent opt-out.
+                $data['update_contact_fields'] = $reconfirm; // Otherwise never change an existing status, including a concurrent opt-out.
                 $data['optin_details'] = [
                     'source'=>'core_forms', 'form'=>$form->slug, 'consent_field'=>$rule['consent_field'],
                     'consent_value'=>$rule['consent_value'], 'consent_recorded_at'=>$submission->submitted_at,
@@ -143,7 +161,9 @@ final class Consent_Policy {
                 return $data;
             };
             add_filter('cf_mailerpress_action_contact_data', $filter, PHP_INT_MAX, 3);
-            try { $result = self::$native->process($settings, $submission, $form); }
+            $native_settings = $settings;
+            $native_settings['double_optin'] = $confirm ? '1' : '';
+            try { $result = self::$native->process($native_settings, $submission, $form); }
             finally { remove_filter('cf_mailerpress_action_contact_data', $filter, PHP_INT_MAX); }
             if (!is_array($result) || empty($result['success'])) return self::fail('MailerPress did not accept this signup.');
             $evidence = (int)$submission->id > 0 ? ['consent'=>[
@@ -151,7 +171,10 @@ final class Consent_Policy {
                 'recorded_at_utc'=>$submission->submitted_at, 'version'=>self::version(),
                 'disclosure'=>$rule['disclosure'], 'list'=>$route['list_name'],
             ]] : [];
-            return \Core_Forms\Integrations\IntegrationResult::success('MailerPress accepted the selected mailing preference. No confirmation email was requested.', $evidence);
+            $already = $contact && 'subscribed' === ($contact->subscription_status ?? '');
+            return \Core_Forms\Integrations\IntegrationResult::success($confirm && !$already
+                ? 'MailerPress accepted the signup and sent a confirmation email. The contact stays pending until the link is clicked.'
+                : 'MailerPress accepted the selected mailing preference. No confirmation email was requested.', $evidence);
         });
     }
 
@@ -159,7 +182,9 @@ final class Consent_Policy {
         $policy = get_option(self::OPTION, []);
         $rule = $policy['forms'][(string)absint($_GET['form_id'] ?? 0)] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only admin notice.
         echo '<p class="description">' . esc_html($rule
-            ? 'Site policy: explicit newsletter consent is required. Existing opt-outs are preserved. Confirmation and live-test sending are disabled. Changes to this action require site route review.'
+            ? (self::confirmation_on()
+                ? 'Site policy: explicit newsletter consent is required, then MailerPress sign-up confirmation (double opt-in) applies to every signup. Bounces, complaints and suppression tags are preserved. Live-test sending is disabled. Changes to this action require site route review.'
+                : 'Site policy: explicit newsletter consent is required. Existing opt-outs are preserved. Confirmation and live-test sending are disabled. Changes to this action require site route review.')
             : 'This MailerPress action needs a reviewed site consent route before it can capture contacts.') . '</p>';
     }
 }
