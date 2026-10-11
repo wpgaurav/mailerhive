@@ -19,7 +19,7 @@ final class Settings {
 	/** Checkbox fields per tab, so a partial (one-tab) save can record "off". */
 	const CHECKBOXES = array(
 		'issues'      => array( 'show_subscribe', 'show_pager', 'nofollow', 'external_new_tab' ),
-		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle' ),
+		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle', 'landing_shell' ),
 		'mailerpress' => array( 'auto_draft', 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
 		'modules'     => array( 'module_consent_policy', 'module_fluentcart_lifecycle', 'module_rich_paste' ),
@@ -68,6 +68,8 @@ final class Settings {
 			// Design.
 			'detach_theme'            => true,
 			'shell_mailerpress_pages' => true,
+			'landing_shell'           => true,
+			'landing_recent'          => 6,
 			'color_scheme'            => 'auto',
 			'show_theme_toggle'       => true,
 			'theme_storage_key'       => 'mailerhive-theme',
@@ -362,6 +364,9 @@ final class Settings {
 				$out[ $k ] = absint( $in[ $k ] );
 			}
 		}
+		if ( isset( $in['landing_recent'] ) ) {
+			$out['landing_recent'] = min( 50, absint( $in['landing_recent'] ) );
+		}
 		if ( isset( $in['logo_width'] ) ) {
 			$out['logo_width'] = min( 400, max( 40, absint( $in['logo_width'] ) ) );
 		}
@@ -632,6 +637,8 @@ final class Settings {
 	private static function tab_design( array $s ): void {
 		self::check( $s, 'detach_theme', __( 'Theme isolation', 'mailerhive' ), __( 'Detach theme styles, scripts and hooks on MailerHive pages', 'mailerhive' ), __( 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.', 'mailerhive' ) );
 		self::check( $s, 'shell_mailerpress_pages', __( 'Subscription pages', 'mailerhive' ), __( 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell', 'mailerhive' ) );
+		self::check( $s, 'landing_shell', __( 'Newsletter page', 'mailerhive' ), __( 'Render the newsletter page in the MailerHive design', 'mailerhive' ), __( 'Signup card, recent issues, then the page’s own content as a reading card. The page template setting is ignored while this is on.', 'mailerhive' ) );
+		self::text( $s, 'landing_recent', __( 'Recent issues on the newsletter page', 'mailerhive' ), '', 'small-text', 'number' );
 		self::select( $s, 'color_scheme', __( 'Color scheme', 'mailerhive' ), array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
 		self::check( $s, 'show_theme_toggle', __( 'Theme toggle', 'mailerhive' ), __( 'Show a light/dark toggle in the header', 'mailerhive' ), __( 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.', 'mailerhive' ) );
 		self::text( $s, 'accent_light', __( 'Accent (light)', 'mailerhive' ), '', 'small-text', 'color' );

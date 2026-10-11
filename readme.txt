@@ -4,7 +4,7 @@ Tags: newsletter, mailerpress, email archive, substack import, beehiiv
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,6 +58,9 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
     wp mailerhive seed
 
 == Changelog ==
+
+= 1.2.0 =
+* Newsletter page in the MailerHive design: signup card, recent issues, editable content card, FAQ accordions.
 
 = 1.1.0 =
 * Icons throughout the reading page, centered sender with a larger avatar, reading time.

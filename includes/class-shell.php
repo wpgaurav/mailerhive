@@ -49,6 +49,8 @@ final class Shell {
 			$ctx = 'issue';
 		} elseif ( is_post_type_archive( Issues::TYPE ) ) {
 			$ctx = 'archive';
+		} elseif ( Settings::on( 'landing_shell' ) && (int) Settings::get( 'landing_page_id' ) && is_page( (int) Settings::get( 'landing_page_id' ) ) ) {
+			$ctx = 'landing';
 		} elseif ( Settings::on( 'shell_mailerpress_pages' ) && self::is_mailerpress_page() ) {
 			$ctx = 'mailerpress';
 		}
@@ -235,6 +237,8 @@ final class Shell {
 				return MAILERHIVE_DIR . 'templates/issue.php';
 			case 'archive':
 				return MAILERHIVE_DIR . 'templates/archive.php';
+			case 'landing':
+				return MAILERHIVE_DIR . 'templates/landing.php';
 			case 'mailerpress':
 				return MAILERHIVE_DIR . 'templates/page.php';
 		}
@@ -350,7 +354,7 @@ final class Shell {
 		$style  = (string) Settings::get( 'header_style' );
 		$logo   = 'avatar' === $style ? '' : self::logo();
 		$byline = (string) Settings::get( 'byline' );
-		$sub    = ( in_array( self::context(), array( 'issue', 'archive' ), true ) && Settings::on( 'show_subscribe' ) ) ? '#mh-subscribe' : self::landing_url();
+		$sub    = ( 'landing' === self::context() || ( in_array( self::context(), array( 'issue', 'archive' ), true ) && Settings::on( 'show_subscribe' ) ) ) ? '#mh-subscribe' : self::landing_url();
 		?>
 		<a class="mh-brand<?php echo $logo && 'logo' === $style ? ' mh-brand--logo' : ''; ?>" href="<?php echo esc_url( self::landing_url() ); ?>"<?php echo $logo && 'logo' === $style ? ' aria-label="' . esc_attr( Settings::brand() ) . '"' : ''; ?>>
 			<?php
@@ -380,16 +384,16 @@ final class Shell {
 		<?php
 	}
 
-	public static function subscribe_box(): void {
+	public static function subscribe_box( string $id = 'mh-subscribe' ): void {
 		if ( ! Settings::on( 'show_subscribe' ) ) {
 			return;
 		}
 		$form  = Settings::form_shortcode();
 		$facts = Settings::lines( 'subscribe_facts' );
 		?>
-<section class="mh-sub" id="mh-subscribe" aria-labelledby="mh-sub-h">
+<section class="mh-sub" id="<?php echo esc_attr( $id ); ?>" aria-labelledby="<?php echo esc_attr( $id ); ?>-h">
 	<span class="mh-sub__icon"><?php echo Icons::get( 'mail-opened' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-	<h2 id="mh-sub-h"><?php echo esc_html( Settings::subscribe_heading() ); ?></h2>
+	<h2 id="<?php echo esc_attr( $id ); ?>-h"><?php echo esc_html( Settings::subscribe_heading() ); ?></h2>
 	<?php if ( Settings::tagline() ) : ?><p><?php echo esc_html( Settings::tagline() ); ?></p><?php endif; ?>
 	<?php if ( $form ) : ?>
 		<div class="mh-sub__form"><?php echo do_shortcode( $form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- shortcode output. ?></div>
