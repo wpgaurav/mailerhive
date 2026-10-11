@@ -22,6 +22,9 @@ final class CLI {
 	 * [--title=<title>]
 	 * : Override the title (single slug only).
 	 *
+	 * [--slug=<slug>]
+	 * : Override the issue slug (single slug only).
+	 *
 	 * [--dry-run]
 	 * : Fetch and convert without writing.
 	 *
@@ -65,7 +68,7 @@ final class CLI {
 					'post_type'     => Issues::TYPE,
 					'post_status'   => 'draft',
 					'post_title'    => $title,
-					'post_name'     => $slug,
+					'post_name'     => ( 1 === count( $args ) && ! empty( $assoc['slug'] ) ) ? sanitize_title( $assoc['slug'] ) : $slug,
 					'post_excerpt'  => (string) ( $data['subtitle'] ?? '' ),
 					'post_date'     => get_date_from_gmt( $gmt ),
 					'post_date_gmt' => $gmt,

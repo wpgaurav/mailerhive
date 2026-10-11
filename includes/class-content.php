@@ -101,12 +101,16 @@ final class Content {
 			. ' or contains(concat(" ",normalize-space(@class)," ")," captioned-button-wrap ")'
 			. ' or contains(concat(" ",normalize-space(@class)," ")," image-link-expand ")'
 			. ' or contains(concat(" ",normalize-space(@class)," ")," embedded-post-wrap ")'
-			. ' or self::script or self::style or self::form or self::svg or self::button or self::source]';
+			. ' or self::script or self::style or self::form or self::svg or self::button]';
 		foreach ( iterator_to_array( $xp->query( $junk ) ) as $n ) {
 			self::remove( $n );
 		}
 
-		// Images: keep a plain <img> plus caption inside a <figure>.
+		// Images: keep a plain <img> plus caption inside a <figure>. libxml's HTML4 parser
+		// treats <source> as a container, so <img> ends up inside it: unwrap, never remove.
+		foreach ( iterator_to_array( $xp->query( '//source' ) ) as $source ) {
+			self::unwrap( $source );
+		}
 		foreach ( iterator_to_array( $xp->query( '//picture' ) ) as $pic ) {
 			self::unwrap( $pic );
 		}
@@ -125,9 +129,16 @@ final class Content {
 				$img->setAttribute( 'src', rawurldecode( $m[1] ) ); // substackcdn fetch wrapper -> original asset
 			}
 			foreach ( array( 'width', 'height' ) as $dim ) {
-				if ( (int) $img->getAttribute( $dim ) > 2400 ) {
+				$v = (float) $img->getAttribute( $dim );
+				if ( $v <= 0 || $v > 2400 ) {
 					$img->removeAttribute( $dim );
+				} else {
+					$img->setAttribute( $dim, (string) (int) round( $v ) );
 				}
+			}
+			$attrs = json_decode( html_entity_decode( (string) $img->getAttribute( 'data-attrs' ) ), true );
+			if ( ! $img->getAttribute( 'alt' ) && ! empty( $attrs['alt'] ) ) {
+				$img->setAttribute( 'alt', (string) $attrs['alt'] );
 			}
 		}
 
