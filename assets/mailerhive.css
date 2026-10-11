@@ -164,3 +164,6 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 
 /* the compact signup form keeps its own CSS; give its button the shell's accent ink */
 .mailerhive .mh-sub__form .cf-form{--jn-btn-ink:var(--mh-accent-ink)}
+
+/* Stylistic accents use PolySans' true italics: deks, subtitles, bylines, captions, quotes, notes. */
+.mh-mail__dek,.mh-brand__txt small,.mh-row__d,.mh-archive__head p,.mh-sub > p,.mh-prose figcaption,.mh-prose blockquote,.mh-pager__link small,.mh-foot__note{font-style:italic}
