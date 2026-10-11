@@ -248,7 +248,7 @@ final class Shell {
 		if ( $url ) {
 			return sprintf( '<img class="mh-avatar mh-avatar--img" src="%s" width="%2$d" height="%2$d" alt="">', esc_url( $url ), $size );
 		}
-		return '<span class="mh-avatar" aria-hidden="true">' . esc_html( (string) Settings::get( 'author_initials' ) ) . '</span>';
+		return '<span class="mh-avatar" aria-hidden="true">' . esc_html( Settings::initials() ) . '</span>';
 	}
 
 	public static function logo(): string {
@@ -258,7 +258,7 @@ final class Shell {
 		}
 		$dark  = (int) Settings::get( 'logo_dark_id' ) ?: $light;
 		$width = (int) Settings::get( 'logo_width' ) ?: 140;
-		$alt   = (string) Settings::get( 'brand_name' );
+		$alt   = Settings::brand();
 		$img   = static function ( int $id, string $class ) use ( $width, $alt ): string {
 			$src = wp_get_attachment_image_src( $id, 'full' );
 			if ( ! $src ) {
@@ -278,7 +278,7 @@ final class Shell {
 		if ( '' !== $line ) {
 			return esc_html( $line );
 		}
-		return '<b>' . esc_html( (string) Settings::get( 'author_name' ) ) . '</b> &middot; ' . esc_html( (string) Settings::get( 'brand_name' ) );
+		return '<b>' . esc_html( Settings::author() ) . '</b> &middot; ' . esc_html( Settings::brand() );
 	}
 
 	public static function toggle_enabled(): bool {
@@ -290,14 +290,33 @@ final class Shell {
 		if ( ! self::toggle_enabled() ) {
 			return;
 		}
-		echo "<script id=\"mailerhive-theme-bootstrap\">!function(){try{var t=localStorage.getItem('md-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}}();</script>\n";
+		$key = esc_js( (string) ( Settings::get( 'theme_storage_key' ) ?: 'mailerhive-theme' ) );
+		echo "<script id=\"mailerhive-theme-bootstrap\">!function(){try{var t=localStorage.getItem('{$key}');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}}();</script>\n";
 	}
 
 	public static function theme_toggle_script(): void {
 		if ( ! self::toggle_enabled() ) {
 			return;
 		}
-		echo "<script id=\"mailerhive-theme-toggle\">!function(){var d=document.documentElement,b=document.querySelector('.mh-theme'),m=window.matchMedia('(prefers-color-scheme: dark)');if(!b)return;function cur(){return d.getAttribute('data-theme')||(m.matches?'dark':'light')}function sync(){var c=cur();b.setAttribute('aria-pressed',c==='dark'?'true':'false');b.setAttribute('aria-label',c==='dark'?'Switch to light mode':'Switch to dark mode');b.setAttribute('title',b.getAttribute('aria-label'))}b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('md-theme',n)}catch(e){}sync()});m.addEventListener&&m.addEventListener('change',function(){sync()});sync()}();</script>\n";
+		$key   = esc_js( (string) ( Settings::get( 'theme_storage_key' ) ?: 'mailerhive-theme' ) );
+		$light = esc_js( __( 'Switch to light mode', 'mailerhive' ) );
+		$dark  = esc_js( __( 'Switch to dark mode', 'mailerhive' ) );
+		echo "<script id=\"mailerhive-theme-toggle\">!function(){var d=document.documentElement,b=document.querySelector('.mh-theme'),m=window.matchMedia('(prefers-color-scheme: dark)');if(!b)return;function cur(){return d.getAttribute('data-theme')||(m.matches?'dark':'light')}function sync(){var c=cur();b.setAttribute('aria-pressed',c==='dark'?'true':'false');b.setAttribute('aria-label',c==='dark'?'{$light}':'{$dark}');b.setAttribute('title',b.getAttribute('aria-label'))}b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('{$key}',n)}catch(e){}sync()});m.addEventListener&&m.addEventListener('change',function(){sync()});sync()}();</script>\n";
+	}
+
+	/** Pick an icon for a footer link from its URL. */
+	private static function link_icon( string $url ): string {
+		$path = trim( (string) wp_parse_url( self::link_href( $url ), PHP_URL_PATH ), '/' );
+		if ( '' === $path ) {
+			return 'home';
+		}
+		if ( str_contains( $path, Settings::issue_base() ) ) {
+			return 'archive';
+		}
+		if ( str_contains( $path, 'privacy' ) ) {
+			return 'shield-lock';
+		}
+		return 'arrow-up-right';
 	}
 
 	private static function link_href( string $url ): string {
@@ -318,15 +337,16 @@ final class Shell {
 </head>
 <body <?php body_class( 'mailerhive mh-' . self::context() ); ?>>
 <?php wp_body_open(); ?>
-<a class="mh-skip" href="#mh-main">Skip to content</a>
+<a class="mh-skip" href="#mh-main"><?php esc_html_e( 'Skip to content', 'mailerhive' ); ?></a>
 <header class="mh-top">
 	<div class="mh-top__in">
 		<?php
-		$style = (string) Settings::get( 'header_style' );
-		$logo  = 'avatar' === $style ? '' : self::logo();
+		$style  = (string) Settings::get( 'header_style' );
+		$logo   = 'avatar' === $style ? '' : self::logo();
 		$byline = (string) Settings::get( 'byline' );
+		$sub    = ( in_array( self::context(), array( 'issue', 'archive' ), true ) && Settings::on( 'show_subscribe' ) ) ? '#mh-subscribe' : self::landing_url();
 		?>
-		<a class="mh-brand<?php echo $logo && 'logo' === $style ? ' mh-brand--logo' : ''; ?>" href="<?php echo esc_url( self::landing_url() ); ?>"<?php echo $logo && 'logo' === $style ? ' aria-label="' . esc_attr( Settings::get( 'brand_name' ) ) . '"' : ''; ?>>
+		<a class="mh-brand<?php echo $logo && 'logo' === $style ? ' mh-brand--logo' : ''; ?>" href="<?php echo esc_url( self::landing_url() ); ?>"<?php echo $logo && 'logo' === $style ? ' aria-label="' . esc_attr( Settings::brand() ) . '"' : ''; ?>>
 			<?php
 			if ( $logo ) {
 				echo $logo; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in logo().
@@ -335,20 +355,19 @@ final class Shell {
 			}
 			?>
 			<?php if ( ! $logo || 'logo_text' === $style ) : ?>
-				<span class="mh-brand__txt"><b><?php echo esc_html( Settings::get( 'brand_name' ) ); ?></b><?php if ( $byline ) : ?><small><?php echo esc_html( $byline ); ?></small><?php endif; ?></span>
+				<span class="mh-brand__txt"><b><?php echo esc_html( Settings::brand() ); ?></b><?php if ( $byline ) : ?><small><?php echo esc_html( $byline ); ?></small><?php endif; ?></span>
 			<?php endif; ?>
 		</a>
-		<nav class="mh-nav" aria-label="Newsletter">
-			<?php foreach ( Settings::link_lines( 'header_links' ) as $link ) : ?>
-				<a href="<?php echo esc_url( self::link_href( $link[1] ) ); ?>"><?php echo esc_html( $link[0] ); ?></a>
+		<nav class="mh-nav" aria-label="<?php esc_attr_e( 'Newsletter', 'mailerhive' ); ?>">
+			<?php foreach ( Settings::link_lines( 'header_links' ) as $i => $link ) : ?>
+				<a class="mh-nav__link" href="<?php echo esc_url( self::link_href( $link[1] ) ); ?>"><?php echo 0 === $i ? Icons::get( 'list-details' ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html( $link[0] ); ?></span></a>
 			<?php endforeach; ?>
-			<?php if ( self::toggle_enabled() ) : ?>
-				<button type="button" class="mh-theme" aria-pressed="false" aria-label="Switch color mode">
-					<svg class="mh-theme__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"/></svg>
-					<svg class="mh-theme__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/></svg>
-				</button>
-			<?php endif; ?>
-			<a class="mh-btn mh-btn--sm" href="<?php echo ( in_array( self::context(), array( 'issue', 'archive' ), true ) && Settings::on( 'show_subscribe' ) ) ? '#mh-subscribe' : esc_url( self::landing_url() ); ?>"><?php echo esc_html( Settings::get( 'subscribe_label' ) ?: 'Subscribe' ); ?></a>
+			<span class="mh-nav__end">
+				<?php if ( self::toggle_enabled() ) : ?>
+					<button type="button" class="mh-theme" aria-pressed="false" aria-label="<?php esc_attr_e( 'Switch color mode', 'mailerhive' ); ?>"><?php echo Icons::get( 'sun', 'mh-theme__sun' ) . Icons::get( 'moon', 'mh-theme__moon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				<?php endif; ?>
+				<a class="mh-btn mh-btn--sm" href="<?php echo esc_url( $sub ); ?>"><?php echo Icons::get( 'mail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html( Settings::get( 'subscribe_label' ) ?: __( 'Subscribe', 'mailerhive' ) ); ?></span></a>
+			</span>
 		</nav>
 	</div>
 </header>
@@ -363,15 +382,16 @@ final class Shell {
 		$facts = Settings::lines( 'subscribe_facts' );
 		?>
 <section class="mh-sub" id="mh-subscribe" aria-labelledby="mh-sub-h">
-	<h2 id="mh-sub-h"><?php echo esc_html( Settings::get( 'subscribe_heading' ) ); ?></h2>
-	<p><?php echo esc_html( Settings::get( 'tagline' ) ); ?></p>
+	<span class="mh-sub__icon"><?php echo Icons::get( 'mail-opened' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+	<h2 id="mh-sub-h"><?php echo esc_html( Settings::subscribe_heading() ); ?></h2>
+	<?php if ( Settings::tagline() ) : ?><p><?php echo esc_html( Settings::tagline() ); ?></p><?php endif; ?>
 	<?php if ( $form ) : ?>
 		<div class="mh-sub__form"><?php echo do_shortcode( $form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- shortcode output. ?></div>
 	<?php else : ?>
-		<p class="mh-sub__cta"><a class="mh-btn" href="<?php echo esc_url( self::landing_url() ); ?>">Subscribe</a></p>
+		<p class="mh-sub__cta"><a class="mh-btn" href="<?php echo esc_url( self::landing_url() ); ?>"><?php echo Icons::get( 'mail' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php esc_html_e( 'Subscribe', 'mailerhive' ); ?></span></a></p>
 	<?php endif; ?>
 	<?php if ( $facts ) : ?>
-		<ul class="mh-facts" role="list"><?php foreach ( $facts as $fact ) : ?><li><?php echo esc_html( $fact ); ?></li><?php endforeach; ?></ul>
+		<ul class="mh-facts" role="list"><?php foreach ( $facts as $fact ) : ?><li><?php echo Icons::get( 'circle-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php echo esc_html( $fact ); ?></li><?php endforeach; ?></ul>
 	<?php endif; ?>
 </section>
 		<?php
@@ -384,12 +404,12 @@ final class Shell {
 	<div class="mh-foot__in">
 		<?php if ( $note ) : ?><p class="mh-foot__note"><?php echo esc_html( $note ); ?></p><?php endif; ?>
 		<nav class="mh-foot__links" aria-label="Footer">
-			<a href="<?php echo esc_url( self::landing_url() ); ?>"><?php echo esc_html( Settings::get( 'brand_name' ) ); ?></a>
+			<a href="<?php echo esc_url( self::landing_url() ); ?>"><?php echo Icons::get( 'news' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html( Settings::brand() ); ?></span></a>
 			<?php foreach ( Settings::link_lines( 'footer_links' ) as $link ) : ?>
-				<a href="<?php echo esc_url( self::link_href( $link[1] ) ); ?>"><?php echo esc_html( $link[0] ); ?></a>
+				<a href="<?php echo esc_url( self::link_href( $link[1] ) ); ?>"><?php echo Icons::get( self::link_icon( $link[1] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span><?php echo esc_html( $link[0] ); ?></span></a>
 			<?php endforeach; ?>
 		</nav>
-		<p class="mh-foot__copy">&copy; 2008&ndash;<?php echo esc_html( wp_date( 'Y' ) ); ?> <?php echo esc_html( Settings::get( 'author_name' ) ); ?></p>
+		<?php if ( Settings::copyright() ) : ?><p class="mh-foot__copy"><?php echo esc_html( Settings::copyright() ); ?></p><?php endif; ?>
 	</div>
 </footer>
 <?php wp_footer(); ?>

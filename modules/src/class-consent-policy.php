@@ -1,17 +1,29 @@
 <?php
 /**
- * Loaded by modules/consent-policy.php only when the old MU copy is absent.
+ * Consent policy for the Core Forms → MailerPress action.
+ *
+ * Replaces the native action handler with one that fails closed: a form only adds
+ * contacts when it is registered here, its MailerPress action matches the reviewed
+ * contract, its consent checkbox carries the exact disclosure on record, the
+ * submission is not spam, and existing opt-outs or suppression tags are preserved.
+ * Consent evidence (form, timestamp, version, disclosure) is written to the contact.
  */
+
+namespace MailerHive\Modules;
 
 defined( 'ABSPATH' ) || exit;
 
 
-final class GT_Core_Forms_MailerPress_Policy {
-    const OPTION = 'gt_core_forms_mailerpress_policy';
+final class Consent_Policy {
+    const OPTION = 'mailerhive_consent_policy';
+    const LEGACY_OPTION = 'gt_core_forms_mailerpress_policy';
     private static $native;
 
     public static function boot(): void {
-        if (untrailingslashit(home_url()) !== 'https://gauravtiwari.org') return;
+        // One-time move from the option name used before MailerHive owned this module.
+        if (false === get_option(self::OPTION, false) && false !== get_option(self::LEGACY_OPTION, false)) {
+            update_option(self::OPTION, get_option(self::LEGACY_OPTION), false);
+        }
         $hook = 'cf_process_form_action_mailerpress';
         foreach (($GLOBALS['wp_filter'][$hook]->callbacks ?? []) as $priority => $callbacks) {
             foreach ($callbacks as $callback) {
@@ -24,6 +36,11 @@ final class GT_Core_Forms_MailerPress_Policy {
             }
         }
         add_action('cf_output_form_action_mailerpress_settings', [self::class, 'explain'], 30, 2);
+    }
+
+    public static function version(): string {
+        $v = (string) \MailerHive\Settings::get('consent_version');
+        return '' !== $v ? $v : 'v1';
     }
 
     public static function contract(array $settings): array {
@@ -114,11 +131,11 @@ final class GT_Core_Forms_MailerPress_Policy {
                 $data['optin_details'] = [
                     'source'=>'core_forms', 'form'=>$form->slug, 'consent_field'=>$rule['consent_field'],
                     'consent_value'=>$rule['consent_value'], 'consent_recorded_at'=>$submission->submitted_at,
-                    'consent_version'=>'gt-core-forms-optin-2026-09-21', 'disclosure'=>$rule['disclosure'],
+                    'consent_version'=>self::version(), 'disclosure'=>$rule['disclosure'],
                 ];
                 $data['custom_fields'] = [
                     'consent_form'=>$form->slug, 'consent_recorded_at'=>substr($submission->submitted_at,0,10),
-                    'consent_version'=>'gt-core-forms-optin-2026-09-21',
+                    'consent_version'=>self::version(),
                 ];
                 if (!$contact) $data['custom_fields']['acquisition_source'] = 'core_forms';
                 return $data;
@@ -129,7 +146,7 @@ final class GT_Core_Forms_MailerPress_Policy {
             if (!is_array($result) || empty($result['success'])) return self::fail('MailerPress did not accept this signup.');
             $evidence = (int)$submission->id > 0 ? ['consent'=>[
                 'form'=>$form->slug, 'field'=>$rule['consent_field'], 'value'=>$rule['consent_value'],
-                'recorded_at_utc'=>$submission->submitted_at, 'version'=>'gt-core-forms-optin-2026-09-21',
+                'recorded_at_utc'=>$submission->submitted_at, 'version'=>self::version(),
                 'disclosure'=>$rule['disclosure'], 'list'=>$route['list_name'],
             ]] : [];
             return \Core_Forms\Integrations\IntegrationResult::success('MailerPress accepted the selected mailing preference. No confirmation email was requested.', $evidence);
@@ -144,4 +161,4 @@ final class GT_Core_Forms_MailerPress_Policy {
             : 'This MailerPress action needs a reviewed site consent route before it can capture contacts.') . '</p>';
     }
 }
-add_action('init', ['GT_Core_Forms_MailerPress_Policy','boot'], 20);
+add_action('init', [Consent_Policy::class, 'boot'], 20);

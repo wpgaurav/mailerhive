@@ -17,10 +17,7 @@ final class CLI {
 	 * : Substack post slugs.
 	 *
 	 * [--publication=<subdomain>]
-	 * : Substack subdomain.
-	 * ---
-	 * default: gauravtiwari
-	 * ---
+	 * : Substack subdomain. Default: the publication set in Settings → Modules.
 	 *
 	 * [--title=<title>]
 	 * : Override the title (single slug only).
@@ -39,7 +36,7 @@ final class CLI {
 			$over = array_filter( array( 'title' => $assoc['title'] ?? null, 'slug' => $assoc['slug'] ?? null ) );
 		}
 		foreach ( $args as $slug ) {
-			$r = Importer::substack( $slug, (string) $assoc['publication'], $over, ! empty( $assoc['dry-run'] ) );
+			$r = Importer::substack( $slug, (string) ( $assoc['publication'] ?? '' ), $over, ! empty( $assoc['dry-run'] ) );
 			$r['ok'] ? \WP_CLI::log( "{$slug}: {$r['message']}" . ( $r['id'] ? " #{$r['id']} " . get_permalink( $r['id'] ) : '' ) ) : \WP_CLI::warning( "{$slug}: {$r['message']}" );
 		}
 		if ( empty( $assoc['dry-run'] ) ) {

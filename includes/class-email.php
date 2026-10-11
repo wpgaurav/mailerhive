@@ -38,7 +38,7 @@ final class Email {
 		$d = get_option( 'mailerpress_default_settings' );
 		$d = is_string( $d ) ? json_decode( $d, true ) : ( is_array( $d ) ? $d : array() );
 		return array(
-			'name'  => (string) ( Settings::get( 'sender_name' ) ?: ( $d['fromName'] ?? Settings::get( 'author_name' ) ) ),
+			'name'  => (string) ( Settings::get( 'sender_name' ) ?: ( $d['fromName'] ?? Settings::author() ) ),
 			'email' => (string) ( Settings::get( 'sender_email' ) ?: ( $d['fromAddress'] ?? get_option( 'admin_email' ) ) ),
 		);
 	}
@@ -92,9 +92,9 @@ final class Email {
 		$html    = self::render( $post );
 		$sender  = self::sender();
 		$title   = wp_strip_all_tags( get_the_title( $post ) );
-		$subject = str_replace( array( '{title}', '{newsletter}' ), array( $title, (string) Settings::get( 'brand_name' ) ), (string) ( Settings::get( 'subject_template' ) ?: '{title}' ) );
+		$subject = str_replace( array( '{title}', '{newsletter}' ), array( $title, Settings::brand() ), (string) ( Settings::get( 'subject_template' ) ?: '{title}' ) );
 		$config  = array(
-			'campaignName'       => (string) Settings::get( 'brand_name' ) . ': ' . $title,
+			'campaignName'       => Settings::brand() . ': ' . $title,
 			'campaignSubject'    => $subject,
 			'email_type'         => 'html',
 			'editorType'         => 'html',
@@ -143,12 +143,12 @@ final class Email {
 	 */
 	public static function render( \WP_Post $post ): string {
 		$accent  = sanitize_hex_color( (string) Settings::get( 'accent_light' ) ) ?: '#C0392B';
-		$brand   = esc_html( (string) Settings::get( 'brand_name' ) );
+		$brand   = esc_html( Settings::brand() );
 		$title   = esc_html( wp_strip_all_tags( get_the_title( $post ) ) );
 		$sub     = esc_html( Issues::subtitle( $post ) );
 		$url     = esc_url( get_permalink( $post ) );
 		$date    = esc_html( get_the_date( 'F j, Y', $post ) );
-		$footer  = esc_html( (string) Settings::get( 'email_footer' ) );
+		$footer  = esc_html( str_replace( array( '{newsletter}', '{site}' ), array( Settings::brand(), get_bloginfo( 'name' ) ), (string) Settings::get( 'email_footer' ) ) );
 		$content = apply_filters( 'the_content', $post->post_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
 		$content = preg_replace( '#<(script|style|iframe|form)\b.*?</\1>#is', '', (string) $content );
 		$content = preg_replace( '#<img\b#i', '<img style="max-width:100%;height:auto;border-radius:8px;display:block"', $content );
@@ -170,12 +170,12 @@ final class Email {
 			. '<tr><td style="padding:20px 32px;border-bottom:1px solid #E7E1D9"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td>' . $head . '</td><td align="right" style="font-size:12px;color:#5C5852">' . $date . '</td></tr></table></td></tr>'
 			. '<tr><td style="padding:28px 32px 4px"><h1 style="margin:0;font-size:28px;line-height:1.2;color:#212121">' . $title . '</h1>'
 			. ( $sub ? '<p style="margin:10px 0 0;font-size:17px;line-height:1.55;color:#5C5852;font-style:italic">' . $sub . '</p>' : '' )
-			. '<p style="margin:14px 0 0;font-size:13px"><a href="' . $url . '" style="color:' . $accent . '">Read this issue on the web</a></p></td></tr>'
+			. '<p style="margin:14px 0 0;font-size:13px"><a href="' . $url . '" style="color:' . $accent . '">' . esc_html__( 'Read this issue on the web', 'mailerhive' ) . '</a></p></td></tr>'
 			. '<tr><td style="padding:20px 32px 28px;font-size:16px;line-height:1.7">' . $content . '</td></tr>'
 			. '</table>'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px"><tr><td align="center" style="padding:20px 24px;font-size:12px;line-height:1.6;color:#5C5852">'
 			. ( $footer ? '<p style="margin:0 0 8px;font-style:italic">' . $footer . '</p>' : '' )
-			. '<p style="margin:0"><a href="%UNSUB_LINK%" style="color:#5C5852">Unsubscribe</a> | <a href="%MANAGE_SUB_LINK%" style="color:#5C5852">Manage subscription</a></p>'
+			. '<p style="margin:0"><a href="%UNSUB_LINK%" style="color:#5C5852">' . esc_html__( 'Unsubscribe', 'mailerhive' ) . '</a> | <a href="%MANAGE_SUB_LINK%" style="color:#5C5852">' . esc_html__( 'Manage subscription', 'mailerhive' ) . '</a></p>'
 			. '</td></tr></table>'
 			. '</td></tr></table></body></html>';
 	}

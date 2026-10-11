@@ -1,15 +1,21 @@
 <?php
 /**
- * Loaded by modules/fluentcart-lifecycle.php only when the old MU copy is absent.
+ * FluentCart → MailerPress lifecycle classification: purchase, refund and
+ * abandoned-checkout tags plus purchase custom fields. A paid order may create a
+ * contact on the customer list; it never changes an existing contact's status, so
+ * a previous unsubscribe is never reversed by a purchase.
  */
+
+namespace MailerHive\Modules;
 
 defined( 'ABSPATH' ) || exit;
 
 
-final class GT_MailerPress_FluentCart_Lifecycle {
+final class FluentCart_Lifecycle {
 	private const CONSENT_VERSION = 'newsletter-consent-v1';
 	private const ABANDONED_TAG = 'Abandoned';
-	private const SWEEP_HOOK = 'gt_mp_abandoned_sweep';
+	private const SWEEP_HOOK = 'mailerhive_fc_abandoned_sweep';
+	private const LEGACY_SWEEP_HOOK = 'gt_mp_abandoned_sweep';
 
 	/**
 	 * How long an unpaid checkout must sit before it counts as abandoned. Tagging on
@@ -24,6 +30,9 @@ final class GT_MailerPress_FluentCart_Lifecycle {
 		add_action( 'fluent_cart/order_refunded', array( __CLASS__, 'classify_refund' ), 30, 1 );
 		add_action( self::SWEEP_HOOK, array( __CLASS__, 'run_abandoned_sweep' ) );
 
+		if ( wp_next_scheduled( self::LEGACY_SWEEP_HOOK ) ) {
+			wp_clear_scheduled_hook( self::LEGACY_SWEEP_HOOK );
+		}
 		if ( ! wp_next_scheduled( self::SWEEP_HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::SWEEP_HOOK );
 		}
@@ -101,16 +110,26 @@ final class GT_MailerPress_FluentCart_Lifecycle {
 			}
 
 			$product_id = (int) $item['post_id'];
-			if ( $product_id && has_term( 'wordpress-plugins', 'product-categories', $product_id ) ) {
-				self::add_named_tag( $contact_id, 'Interest: WordPress Plugins' );
-			}
-			if ( $product_id && has_term( 'books', 'product-categories', $product_id ) ) {
-				self::add_named_tag( $contact_id, 'Interest: Books & Learning' );
-			}
-			if ( $product_id && has_term( 'freebies', 'product-categories', $product_id ) ) {
-				self::add_named_tag( $contact_id, 'Access: Free Product' );
+			if ( $product_id ) {
+				foreach ( self::category_tags() as $slug => $tag ) {
+					if ( has_term( $slug, 'product-categories', $product_id ) ) {
+						self::add_named_tag( $contact_id, $tag );
+					}
+				}
 			}
 		}
+	}
+
+	/** "category-slug | Tag name" lines from Settings → Modules. */
+	private static function category_tags(): array {
+		$out = array();
+		foreach ( preg_split( '/\r\n|\r|\n/', (string) \MailerHive\Settings::get( 'fc_category_tags' ) ) as $line ) {
+			$parts = array_map( 'trim', explode( '|', $line, 2 ) );
+			if ( 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1] ) {
+				$out[ sanitize_title( $parts[0] ) ] = sanitize_text_field( $parts[1] );
+			}
+		}
+		return $out;
 	}
 
 	public static function classify_refund( $data ): void {
@@ -123,8 +142,8 @@ final class GT_MailerPress_FluentCart_Lifecycle {
 	/**
 	 * Resolve the contact for a paid order, creating one when it does not exist.
 	 *
-	 * Gaurav authorized contact creation from a paid order on 2026-09-09 so that every
-	 * paying customer receives critical product updates. Creation is deliberately
+	 * Contacts are created from paid orders so every paying customer can receive
+	 * critical product updates. Creation is deliberately
 	 * limited to this paid path, and an existing contact is never modified here, so a
 	 * previous unsubscribe can never be reversed by a purchase.
 	 */
@@ -150,7 +169,7 @@ final class GT_MailerPress_FluentCart_Lifecycle {
 			'assign_default_list' => false,
 		);
 
-		$list_id = self::list_id_by_name( 'Customers' );
+		$list_id = self::list_id_by_name( (string) ( \MailerHive\Settings::get( 'fc_customer_list' ) ?: 'Customers' ) );
 		if ( $list_id ) {
 			$payload['lists'] = array( array( 'id' => $list_id ) );
 		}
@@ -391,4 +410,4 @@ final class GT_MailerPress_FluentCart_Lifecycle {
 	}
 }
 
-GT_MailerPress_FluentCart_Lifecycle::boot();
+FluentCart_Lifecycle::boot();

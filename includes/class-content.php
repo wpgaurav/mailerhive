@@ -241,7 +241,7 @@ final class Content {
 					$path = (string) wp_parse_url( $src, PHP_URL_PATH );
 					$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 					$ext  = in_array( $ext, array( 'jpg', 'jpeg', 'png', 'gif', 'webp' ), true ) ? $ext : 'jpg';
-					$name = sanitize_file_name( 'workbench-issue-' . $post_id . '-' . substr( md5( $src ), 0, 8 ) . '.' . $ext );
+					$name = sanitize_file_name( 'mailerhive-issue-' . $post_id . '-' . substr( md5( $src ), 0, 8 ) . '.' . $ext );
 					$id   = media_handle_sideload( array( 'name' => $name, 'tmp_name' => $tmp ), $post_id );
 					if ( is_wp_error( $id ) ) {
 						wp_delete_file( $tmp );

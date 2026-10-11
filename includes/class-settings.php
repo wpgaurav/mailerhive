@@ -20,6 +20,7 @@ final class Settings {
 		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle' ),
 		'mailerpress' => array( 'auto_draft', 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
+		'modules'     => array( 'module_consent_policy', 'module_fluentcart_lifecycle', 'module_rich_paste' ),
 	);
 
 	const TABS = array(
@@ -28,34 +29,35 @@ final class Settings {
 		'design'      => 'Design',
 		'mailerpress' => 'MailerPress',
 		'analytics'   => 'Analytics',
+		'modules'     => 'Modules',
 		'tools'       => 'Tools & status',
 	);
 
 	public static function defaults(): array {
 		return array(
 			// General.
-			'brand_name'              => 'From the Workbench',
-			'author_name'             => 'Gaurav Tiwari',
-			'author_initials'         => 'GT',
+			'brand_name'              => '',
+			'author_name'             => '',
+			'author_initials'         => '',
 			'avatar_url'              => '',
 			'avatar_id'               => 0,
 			'header_style'            => 'avatar',
 			'logo_id'                 => 0,
 			'logo_dark_id'            => 0,
 			'logo_width'              => 140,
-			'byline'                  => 'by Gaurav Tiwari',
+			'byline'                  => '',
 			'sender_line'             => '',
 			'subscribe_label'         => 'Subscribe',
-			'tagline'                 => 'Notes on WordPress, publishing, search, and independent products, sent when something real comes off my bench.',
+			'tagline'                 => '',
 			'landing_page_id'         => 0,
-			'form_slug'               => 'from-the-workbench',
+			'form_slug'               => '',
 			'form_shortcode'          => '',
 			// Issues.
 			'issue_base'              => 'newsletter/issue',
 			'archive_title'           => '',
 			'archive_intro'           => '',
-			'subscribe_heading'       => 'Get the next note from my workbench',
-			'subscribe_facts'         => "Free\nNo fixed schedule\nUnsubscribe from any issue",
+			'subscribe_heading'       => '',
+			'subscribe_facts'         => "Free\nNo fixed schedule\nUnsubscribe anytime",
 			'show_subscribe'          => true,
 			'show_pager'              => true,
 			'nofollow'                => true,
@@ -66,6 +68,8 @@ final class Settings {
 			'shell_mailerpress_pages' => true,
 			'color_scheme'            => 'auto',
 			'show_theme_toggle'       => true,
+			'theme_storage_key'       => 'mailerhive-theme',
+			'copyright'               => '© {year} {site}',
 			'accent_light'            => '#C0392B',
 			'accent_dark'             => '#E8836F',
 			'header_links'            => '',
@@ -79,16 +83,25 @@ final class Settings {
 			'sender_name'             => '',
 			'sender_email'            => '',
 			'subject_template'        => '{title}',
-			'email_footer'            => 'You get this because you subscribed to From the Workbench at gauravtiwari.org.',
+			'email_footer'            => 'You are receiving this because you subscribed to {newsletter}.',
 			'mirror_enabled'          => true,
 			'mirror_list_ids'         => array(),
 			'mirror_status'           => 'publish',
 			'redirect_web_view'       => true,
 			// Analytics.
-			'rybbit_enabled'          => true,
+			'rybbit_enabled'          => false,
 			'rybbit_src'              => '',
 			'rybbit_site_id'          => '',
 			'head_html'               => '',
+			// Imports.
+			'substack_publication'    => '',
+			// Modules (off for new installs).
+			'module_consent_policy'   => false,
+			'module_fluentcart_lifecycle' => false,
+			'module_rich_paste'       => false,
+			'consent_version'         => 'v1',
+			'fc_category_tags'        => '',
+			'fc_customer_list'        => 'Customers',
 		);
 	}
 
@@ -109,6 +122,46 @@ final class Settings {
 	public static function get( string $key ) {
 		$all = self::all();
 		return $all[ $key ] ?? null;
+	}
+
+	/* ---------- values with sensible fallbacks for a fresh install ---------- */
+
+	public static function brand(): string {
+		$v = trim( (string) self::get( 'brand_name' ) );
+		/* translators: %s: site title */
+		return '' !== $v ? $v : sprintf( __( '%s Newsletter', 'mailerhive' ), get_bloginfo( 'name' ) );
+	}
+
+	public static function author(): string {
+		$v = trim( (string) self::get( 'author_name' ) );
+		return '' !== $v ? $v : (string) get_bloginfo( 'name' );
+	}
+
+	public static function initials(): string {
+		$v = trim( (string) self::get( 'author_initials' ) );
+		if ( '' !== $v ) {
+			return $v;
+		}
+		$words = preg_split( '/\s+/', self::author() );
+		$out   = '';
+		foreach ( array_slice( array_filter( $words ), 0, 2 ) as $w ) {
+			$out .= function_exists( 'mb_substr' ) ? mb_strtoupper( mb_substr( $w, 0, 1 ) ) : strtoupper( substr( $w, 0, 1 ) );
+		}
+		return $out;
+	}
+
+	public static function tagline(): string {
+		$v = trim( (string) self::get( 'tagline' ) );
+		return '' !== $v ? $v : (string) get_bloginfo( 'description' );
+	}
+
+	public static function subscribe_heading(): string {
+		$v = trim( (string) self::get( 'subscribe_heading' ) );
+		return '' !== $v ? $v : __( 'Get the next issue', 'mailerhive' );
+	}
+
+	public static function copyright(): string {
+		return str_replace( array( '{year}', '{site}' ), array( wp_date( 'Y' ), get_bloginfo( 'name' ) ), (string) self::get( 'copyright' ) );
 	}
 
 	public static function on( string $key ): bool {
@@ -202,12 +255,19 @@ final class Settings {
 			$s['privacy_url'] = (string) get_privacy_policy_url();
 		}
 
+		if ( 'mailerhive-theme' === $s['theme_storage_key'] && function_exists( 'md_setting' ) ) {
+			$s['theme_storage_key'] = 'md-theme'; // share the Marketers Delight toggle's choice
+		}
+		if ( $s['rybbit_src'] && $s['rybbit_site_id'] && ! isset( get_option( self::OPTION, array() )['rybbit_enabled'] ) ) {
+			$s['rybbit_enabled'] = true;
+		}
+
 		if ( '' === trim( (string) $s['header_links'] ) ) {
 			$s['header_links'] = 'All issues | /' . self::issue_base() . '/';
 		}
 
 		if ( '' === trim( (string) $s['footer_links'] ) ) {
-			$lines = array( 'All issues | /' . self::issue_base() . '/', 'gauravtiwari.org | /' );
+			$lines = array( 'All issues | /' . self::issue_base() . '/', get_bloginfo( 'name' ) . ' | /' );
 			if ( $s['privacy_url'] ) {
 				$lines[] = 'Privacy | ' . $s['privacy_url'];
 			}
@@ -269,12 +329,12 @@ final class Settings {
 		$out = self::all();
 		$tab = sanitize_key( $in['_tab'] ?? '' );
 
-		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode', 'byline', 'sender_line', 'subscribe_label', 'sender_name', 'subject_template', 'email_footer' ) as $k ) {
+		foreach ( array( 'brand_name', 'author_name', 'author_initials', 'archive_title', 'subscribe_heading', 'footer_note', 'rybbit_site_id', 'form_shortcode', 'byline', 'sender_line', 'subscribe_label', 'sender_name', 'subject_template', 'email_footer', 'copyright', 'consent_version', 'fc_customer_list' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( $in[ $k ] );
 			}
 		}
-		foreach ( array( 'tagline', 'archive_intro', 'subscribe_facts', 'header_links', 'footer_links' ) as $k ) {
+		foreach ( array( 'tagline', 'archive_intro', 'subscribe_facts', 'header_links', 'footer_links', 'fc_category_tags' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
 				$out[ $k ] = sanitize_textarea_field( $in[ $k ] );
 			}
@@ -282,6 +342,11 @@ final class Settings {
 		foreach ( array( 'avatar_url', 'rybbit_src', 'privacy_url' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
 				$out[ $k ] = esc_url_raw( $in[ $k ] );
+			}
+		}
+		foreach ( array( 'theme_storage_key', 'substack_publication' ) as $k ) {
+			if ( isset( $in[ $k ] ) ) {
+				$out[ $k ] = sanitize_key( $in[ $k ] );
 			}
 		}
 		if ( isset( $in['form_slug'] ) ) {
@@ -362,7 +427,11 @@ final class Settings {
 				break;
 			case 'import':
 				$slugs = array_filter( array_map( 'sanitize_title', preg_split( '/[\s,]+/', (string) wp_unslash( $_POST['slugs'] ?? '' ) ) ) );
-				$pub   = sanitize_key( wp_unslash( $_POST['publication'] ?? 'gauravtiwari' ) );
+				$pub   = sanitize_key( wp_unslash( $_POST['publication'] ?? '' ) );
+				if ( '' === $pub ) {
+					$msg = __( 'Enter the Substack publication subdomain.', 'mailerhive' );
+					break;
+				}
 				$done  = array();
 				foreach ( $slugs as $slug ) {
 					$r      = Importer::substack( $slug, $pub );
@@ -378,6 +447,10 @@ final class Settings {
 			case 'seed':
 				self::seed();
 				$msg = 'Blank settings refilled from the site.';
+				break;
+			case 'register_form':
+				$msg  = self::register_signup_form();
+				$back = 'modules';
 				break;
 			case 'enable_auto_draft':
 			case 'disable_auto_draft':
@@ -507,19 +580,19 @@ final class Settings {
 	}
 
 	private static function tab_general( array $s ): void {
-		self::text( $s, 'brand_name', 'Newsletter name' );
-		self::text( $s, 'author_name', 'Sender name', 'Shown on every issue as the email sender.' );
-		self::text( $s, 'byline', 'Byline', 'Shown under the newsletter name in the header, for example "by Gaurav Tiwari". Leave blank to hide.' );
-		self::text( $s, 'sender_line', 'Sender line', 'The "from" line on each issue. Default: "{Sender name} · {Newsletter name}".', 'large-text' );
-		self::area( $s, 'tagline', 'Tagline', 'Used on the archive and in the subscribe box.', 2 );
-		self::heading( 'Branding' );
-		self::select( $s, 'header_style', 'Header shows', array( 'avatar' => 'Avatar, newsletter name and byline', 'logo_text' => 'Logo, newsletter name and byline', 'logo' => 'Logo only' ) );
-		self::media( $s, 'logo_id', 'Logo', 'SVG or PNG with a transparent background works best.' );
-		self::media( $s, 'logo_dark_id', 'Logo for dark mode', 'Optional. Falls back to the main logo.' );
-		self::text( $s, 'logo_width', 'Logo width (px)', 'Display width in the header. Height follows the image.', 'small-text', 'number' );
-		self::media( $s, 'avatar_id', 'Avatar', 'Square photo or mark shown in the header and on each issue. Falls back to the initials.' );
-		self::text( $s, 'author_initials', 'Avatar initials', 'Used when no avatar image is set.', 'small-text' );
-		self::heading( 'Signup' );
+		self::text( $s, 'brand_name', __( 'Newsletter name', 'mailerhive' ) );
+		self::text( $s, 'author_name', __( 'Sender name', 'mailerhive' ), __( 'Shown on every issue as the email sender.', 'mailerhive' ) );
+		self::text( $s, 'byline', __( 'Byline', 'mailerhive' ), __( 'Shown under the newsletter name in the header, for example "by Jane Doe". Leave blank to hide.', 'mailerhive' ) );
+		self::text( $s, 'sender_line', __( 'Sender line', 'mailerhive' ), __( 'The "from" line on each issue. Default: "{Sender name} · {Newsletter name}".', 'mailerhive' ), 'large-text' );
+		self::area( $s, 'tagline', __( 'Tagline', 'mailerhive' ), __( 'Used on the archive and in the subscribe box.', 'mailerhive' ), 2 );
+		self::heading( __( 'Branding', 'mailerhive' ) );
+		self::select( $s, 'header_style', __( 'Header shows', 'mailerhive' ), array( 'avatar' => 'Avatar, newsletter name and byline', 'logo_text' => 'Logo, newsletter name and byline', 'logo' => 'Logo only' ) );
+		self::media( $s, 'logo_id', __( 'Logo', 'mailerhive' ), __( 'SVG or PNG with a transparent background works best.', 'mailerhive' ) );
+		self::media( $s, 'logo_dark_id', __( 'Logo for dark mode', 'mailerhive' ), __( 'Optional. Falls back to the main logo.', 'mailerhive' ) );
+		self::text( $s, 'logo_width', __( 'Logo width (px)', 'mailerhive' ), __( 'Display width in the header. Height follows the image.', 'mailerhive' ), 'small-text', 'number' );
+		self::media( $s, 'avatar_id', __( 'Avatar', 'mailerhive' ), __( 'Square photo or mark shown in the header and on each issue. Falls back to the initials.', 'mailerhive' ) );
+		self::text( $s, 'author_initials', __( 'Avatar initials', 'mailerhive' ), __( 'Used when no avatar image is set.', 'mailerhive' ), 'small-text' );
+		self::heading( __( 'Signup', 'mailerhive' ) );
 		self::row(
 			'Newsletter page',
 			wp_dropdown_pages(
@@ -536,36 +609,36 @@ final class Settings {
 			'mh-landing_page_id'
 		);
 		$forms = array( '' => '— None —' ) + self::core_forms();
-		self::select( $s, 'form_slug', 'Signup form', $forms, 'The Core Forms form shown on issue pages and the archive. It must be registered with the site MailerPress consent policy, or signups fail closed.' );
-		self::text( $s, 'form_shortcode', 'Custom form shortcode', 'Optional. Overrides the form above, for example a different form plugin.', 'large-text code' );
-		self::text( $s, 'subscribe_label', 'Header button label' );
+		self::select( $s, 'form_slug', __( 'Signup form', 'mailerhive' ), $forms, __( 'The Core Forms form shown on issue pages and the archive. It must be registered with the site MailerPress consent policy, or signups fail closed.', 'mailerhive' ) );
+		self::text( $s, 'form_shortcode', __( 'Custom form shortcode', 'mailerhive' ), __( 'Optional. Overrides the form above, for example a different form plugin.', 'mailerhive' ), 'large-text code' );
+		self::text( $s, 'subscribe_label', __( 'Header button label', 'mailerhive' ) );
 	}
 
 	private static function tab_issues( array $s ): void {
-		self::text( $s, 'issue_base', 'Issue URL base', 'Issues live at <code>' . esc_html( home_url( '/' . self::issue_base() . '/' ) ) . '{slug}/</code>. Changing this refreshes permalinks; old URLs are not redirected.', 'regular-text code' );
-		self::text( $s, 'archive_title', 'Archive title', 'Default: "{Newsletter name}: every issue".' );
-		self::area( $s, 'archive_intro', 'Archive intro', 'Default: the tagline.', 2 );
-		self::check( $s, 'show_subscribe', 'Subscribe box', 'Show the signup box under every issue and on the archive' );
-		self::text( $s, 'subscribe_heading', 'Subscribe heading', '', 'large-text' );
-		self::area( $s, 'subscribe_facts', 'Subscribe facts', 'One short fact per line, shown with dot bullets under the form.', 3 );
-		self::check( $s, 'show_pager', 'Issue navigation', 'Show previous and next issue links' );
-		self::check( $s, 'nofollow', 'External links', 'Add rel="nofollow noopener" to every external link in issues' );
-		self::check( $s, 'external_new_tab', 'Open externally', 'Open external links in a new tab' );
-		self::area( $s, 'internal_hosts', 'Extra internal hosts', 'Hosts treated as internal (no nofollow). The site and its subdomains are always internal. One per line.', 3 );
+		self::text( $s, 'issue_base', __( 'Issue URL base', 'mailerhive' ), 'Issues live at <code>' . esc_html( home_url( '/' . self::issue_base() . '/' ) ) . '{slug}/</code>. Changing this refreshes permalinks; old URLs are not redirected.', 'regular-text code' );
+		self::text( $s, 'archive_title', __( 'Archive title', 'mailerhive' ), __( 'Default: "{Newsletter name}: every issue".', 'mailerhive' ) );
+		self::area( $s, 'archive_intro', __( 'Archive intro', 'mailerhive' ), __( 'Default: the tagline.', 'mailerhive' ), 2 );
+		self::check( $s, 'show_subscribe', __( 'Subscribe box', 'mailerhive' ), __( 'Show the signup box under every issue and on the archive', 'mailerhive' ) );
+		self::text( $s, 'subscribe_heading', __( 'Subscribe heading', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text' );
+		self::area( $s, 'subscribe_facts', __( 'Subscribe facts', 'mailerhive' ), __( 'One short fact per line, shown with dot bullets under the form.', 'mailerhive' ), 3 );
+		self::check( $s, 'show_pager', __( 'Issue navigation', 'mailerhive' ), __( 'Show previous and next issue links', 'mailerhive' ) );
+		self::check( $s, 'nofollow', __( 'External links', 'mailerhive' ), __( 'Add rel="nofollow noopener" to every external link in issues', 'mailerhive' ) );
+		self::check( $s, 'external_new_tab', __( 'Open externally', 'mailerhive' ), __( 'Open external links in a new tab', 'mailerhive' ) );
+		self::area( $s, 'internal_hosts', __( 'Extra internal hosts', 'mailerhive' ), __( 'Hosts treated as internal (no nofollow). The site and its subdomains are always internal. One per line.', 'mailerhive' ), 3 );
 	}
 
 	private static function tab_design( array $s ): void {
-		self::check( $s, 'detach_theme', 'Theme isolation', 'Detach theme styles, scripts and hooks on MailerHive pages', 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.' );
-		self::check( $s, 'shell_mailerpress_pages', 'Subscription pages', 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell' );
-		self::select( $s, 'color_scheme', 'Color scheme', array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
-		self::check( $s, 'show_theme_toggle', 'Theme toggle', 'Show a light/dark toggle in the header', 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.' );
-		self::text( $s, 'accent_light', 'Accent (light)', '', 'small-text', 'color' );
-		self::text( $s, 'accent_dark', 'Accent (dark)', 'Used for buttons and links on dark backgrounds.', 'small-text', 'color' );
-		self::area( $s, 'header_links', 'Header links', 'One per line as <code>Label | URL</code>. A Subscribe button is always added.', 3, true );
-		self::text( $s, 'footer_note', 'Footer note', '', 'large-text' );
-		self::area( $s, 'footer_links', 'Footer links', 'One per line as <code>Label | URL</code>.', 4, true );
-		self::text( $s, 'privacy_url', 'Privacy policy URL', '', 'large-text', 'url' );
-		self::area( $s, 'custom_css', 'Extra CSS', 'Loaded after MailerHive’s stylesheet on its pages only.', 6, true );
+		self::check( $s, 'detach_theme', __( 'Theme isolation', 'mailerhive' ), __( 'Detach theme styles, scripts and hooks on MailerHive pages', 'mailerhive' ), __( 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.', 'mailerhive' ) );
+		self::check( $s, 'shell_mailerpress_pages', __( 'Subscription pages', 'mailerhive' ), __( 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell', 'mailerhive' ) );
+		self::select( $s, 'color_scheme', __( 'Color scheme', 'mailerhive' ), array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
+		self::check( $s, 'show_theme_toggle', __( 'Theme toggle', 'mailerhive' ), __( 'Show a light/dark toggle in the header', 'mailerhive' ), __( 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.', 'mailerhive' ) );
+		self::text( $s, 'accent_light', __( 'Accent (light)', 'mailerhive' ), __( '', 'mailerhive' ), 'small-text', 'color' );
+		self::text( $s, 'accent_dark', __( 'Accent (dark)', 'mailerhive' ), __( 'Used for buttons and links on dark backgrounds.', 'mailerhive' ), 'small-text', 'color' );
+		self::area( $s, 'header_links', __( 'Header links', 'mailerhive' ), __( 'One per line as <code>Label | URL</code>. A Subscribe button is always added.', 'mailerhive' ), 3, true );
+		self::text( $s, 'footer_note', __( 'Footer note', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text' );
+		self::area( $s, 'footer_links', __( 'Footer links', 'mailerhive' ), __( 'One per line as <code>Label | URL</code>.', 'mailerhive' ), 4, true );
+		self::text( $s, 'privacy_url', __( 'Privacy policy URL', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text', 'url' );
+		self::area( $s, 'custom_css', __( 'Extra CSS', 'mailerhive' ), __( 'Loaded after MailerHive’s stylesheet on its pages only.', 'mailerhive' ), 6, true );
 	}
 
 	private static function list_boxes( array $s, string $key, array $lists ): string {
@@ -582,18 +655,18 @@ final class Settings {
 		$state  = Settings::on( 'auto_draft' )
 			? '<strong style="color:#008a20">On.</strong> Publishing a new issue creates a draft campaign in MailerPress automatically.'
 			: '<strong>Off.</strong> Turn it on to get a ready-to-review MailerPress draft every time you publish an issue.';
-		self::row( 'One-click email drafts', $state . self::tool_button_html( Settings::on( 'auto_draft' ) ? 'disable_auto_draft' : 'enable_auto_draft', Settings::on( 'auto_draft' ) ? 'Turn off' : 'Turn on automatic drafts', Settings::on( 'auto_draft' ) ? 'secondary' : 'primary' ) . self::tool_button_html( 'draft_latest', 'Create a draft for the latest issue', 'secondary' ), 'Drafts are never scheduled or sent. Open MailerPress → Campaigns to review and send. Every draft includes Unsubscribe and Manage subscription links, which MailerPress fills in per recipient. No MailerPress Automation is needed.' );
+		self::row( __( 'One-click email drafts', 'mailerhive' ), $state . self::tool_button_html( Settings::on( 'auto_draft' ) ? 'disable_auto_draft' : 'enable_auto_draft', Settings::on( 'auto_draft' ) ? 'Turn off' : 'Turn on automatic drafts', Settings::on( 'auto_draft' ) ? 'secondary' : 'primary' ) . self::tool_button_html( 'draft_latest', 'Create a draft for the latest issue', 'secondary' ), __( 'Drafts are never scheduled or sent. Open MailerPress → Campaigns to review and send. Every draft includes Unsubscribe and Manage subscription links, which MailerPress fills in per recipient. No MailerPress Automation is needed.', 'mailerhive' ) );
 		echo '<tr><td colspan="2" style="padding:0"><input type="hidden" name="' . esc_attr( self::name( 'auto_draft' ) ) . '" value="' . ( Settings::on( 'auto_draft' ) ? '1' : '' ) . '"></td></tr>';
-		self::row( 'Send drafts to', self::list_boxes( $s, 'draft_list_ids', $lists ), 'Leave empty to use the mirror lists below.' );
-		self::text( $s, 'subject_template', 'Subject line', 'Placeholders: <code>{title}</code>, <code>{newsletter}</code>.', 'regular-text' );
-		self::text( $s, 'sender_name', 'From name', 'Default from MailerPress: ' . esc_html( $sender['name'] ) . '.' );
-		self::text( $s, 'sender_email', 'From email', 'Default from MailerPress: ' . esc_html( $sender['email'] ) . '.', 'regular-text', 'email' );
-		self::text( $s, 'email_footer', 'Email footer note', 'Shown above the Unsubscribe and Manage subscription links.', 'large-text' );
-		self::heading( 'Campaigns written in MailerPress' );
-		self::check( $s, 'mirror_enabled', 'Mirror campaigns', 'Publish newsletters composed directly in MailerPress as issues once they are sent' );
-		self::row( 'Mirror lists', self::list_boxes( $s, 'mirror_list_ids', $lists ), 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.' );
-		self::select( $s, 'mirror_status', 'Mirrored issue status', array( 'publish' => 'Publish immediately', 'draft' => 'Save as draft for review' ) );
-		self::check( $s, 'redirect_web_view', 'View in browser', 'Send MailerPress "view in browser" links to the matching issue page' );
+		self::row( __( 'Send drafts to', 'mailerhive' ), self::list_boxes( $s, 'draft_list_ids', $lists ), __( 'Leave empty to use the mirror lists below.', 'mailerhive' ) );
+		self::text( $s, 'subject_template', __( 'Subject line', 'mailerhive' ), __( 'Placeholders: <code>{title}</code>, <code>{newsletter}</code>.', 'mailerhive' ), 'regular-text' );
+		self::text( $s, 'sender_name', __( 'From name', 'mailerhive' ), 'Default from MailerPress: ' . esc_html( $sender['name'] ) . '.' );
+		self::text( $s, 'sender_email', __( 'From email', 'mailerhive' ), 'Default from MailerPress: ' . esc_html( $sender['email'] ) . '.', 'regular-text', 'email' );
+		self::text( $s, 'email_footer', __( 'Email footer note', 'mailerhive' ), __( 'Shown above the Unsubscribe and Manage subscription links.', 'mailerhive' ), 'large-text' );
+		self::heading( __( 'Campaigns written in MailerPress', 'mailerhive' ) );
+		self::check( $s, 'mirror_enabled', __( 'Mirror campaigns', 'mailerhive' ), __( 'Publish newsletters composed directly in MailerPress as issues once they are sent', 'mailerhive' ) );
+		self::row( __( 'Mirror lists', 'mailerhive' ), self::list_boxes( $s, 'mirror_list_ids', $lists ), __( 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.', 'mailerhive' ) );
+		self::select( $s, 'mirror_status', __( 'Mirrored issue status', 'mailerhive' ), array( 'publish' => 'Publish immediately', 'draft' => 'Save as draft for review' ) );
+		self::check( $s, 'redirect_web_view', __( 'View in browser', 'mailerhive' ), __( 'Send MailerPress "view in browser" links to the matching issue page', 'mailerhive' ) );
 		$mp = get_option( 'mailerpress_default_settings' );
 		$mp = is_string( $mp ) ? json_decode( $mp, true ) : $mp;
 		$fn = static function ( $page ) {
@@ -602,7 +675,7 @@ final class Settings {
 			}
 			return esc_html( get_the_title( (int) $page['pageId'] ) ) . ' (#' . (int) $page['pageId'] . ')';
 		};
-		self::row( 'Subscription pages', 'Unsubscribe: ' . $fn( $mp['unsubpage'] ?? null ) . '<br>Manage: ' . $fn( $mp['subpage'] ?? null ), 'Set in MailerPress → Settings. MailerHive renders them in its shell when enabled on the Design tab.' );
+		self::row( __( 'Subscription pages', 'mailerhive' ), 'Unsubscribe: ' . $fn( $mp['unsubpage'] ?? null ) . '<br>Manage: ' . $fn( $mp['subpage'] ?? null ), __( 'Set in MailerPress → Settings. MailerHive renders them in its shell when enabled on the Design tab.', 'mailerhive' ) );
 	}
 
 	/** A tool button rendered inside the settings form (submits to admin-post via formaction). */
@@ -612,10 +685,94 @@ final class Settings {
 	}
 
 	private static function tab_analytics( array $s ): void {
-		self::check( $s, 'rybbit_enabled', 'Rybbit', 'Load the Rybbit tracking script on MailerHive pages', 'The site’s Rybbit tag comes from the theme’s footer scripts, which theme isolation detaches, so MailerHive prints its own copy.' );
-		self::text( $s, 'rybbit_src', 'Script URL', '', 'large-text code', 'url' );
-		self::text( $s, 'rybbit_site_id', 'Site ID', '', 'regular-text code' );
-		self::area( $s, 'head_html', 'Extra head HTML', 'Optional tags printed in the &lt;head&gt; of MailerHive pages, such as another analytics or verification tag.', 4, true );
+		self::check( $s, 'rybbit_enabled', __( 'Rybbit', 'mailerhive' ), __( 'Load the Rybbit tracking script on MailerHive pages', 'mailerhive' ), __( 'The site’s Rybbit tag comes from the theme’s footer scripts, which theme isolation detaches, so MailerHive prints its own copy.', 'mailerhive' ) );
+		self::text( $s, 'rybbit_src', __( 'Script URL', 'mailerhive' ), __( '', 'mailerhive' ), 'large-text code', 'url' );
+		self::text( $s, 'rybbit_site_id', __( 'Site ID', 'mailerhive' ), __( '', 'mailerhive' ), 'regular-text code' );
+		self::area( $s, 'head_html', __( 'Extra head HTML', 'mailerhive' ), __( 'Optional tags printed in the &lt;head&gt; of MailerHive pages, such as another analytics or verification tag.', 'mailerhive' ), 4, true );
+	}
+
+	private static function tab_modules( array $s ): void {
+		self::check( $s, 'module_consent_policy', __( 'Consent policy', 'mailerhive' ), __( 'Gate Core Forms → MailerPress signups on a reviewed consent route', 'mailerhive' ), __( 'Only registered forms can add contacts, the consent checkbox must carry the exact disclosure on record, spam and existing opt-outs are respected, and consent evidence is saved on the contact. Unregistered forms fail closed.', 'mailerhive' ) );
+		$policy = get_option( 'mailerhive_consent_policy', get_option( 'gt_core_forms_mailerpress_policy', array() ) );
+		$forms  = is_array( $policy['forms'] ?? null ) ? $policy['forms'] : array();
+		$slug   = (string) self::get( 'form_slug' );
+		$form   = $slug ? get_page_by_path( $slug, OBJECT, 'core-form' ) : null;
+		$state  = sprintf( /* translators: %d: number of forms */ _n( '%d form registered.', '%d forms registered.', count( $forms ), 'mailerhive' ), count( $forms ) );
+		if ( $form ) {
+			$state .= ' ' . ( isset( $forms[ (string) $form->ID ] ) ? esc_html__( 'Your signup form is registered.', 'mailerhive' ) : '<strong>' . esc_html__( 'Your signup form is not registered yet.', 'mailerhive' ) . '</strong>' );
+		}
+		self::row( __( 'Registered forms', 'mailerhive' ), $state . self::tool_button_html( 'register_form', __( 'Register the signup form', 'mailerhive' ), 'secondary' ), __( 'Registers the form chosen on the General tab using its MailerPress action and consent checkbox. Re-run after editing that form’s action or consent wording.', 'mailerhive' ) );
+		self::text( $s, 'consent_version', __( 'Consent version', 'mailerhive' ), __( 'Saved with every new consent record. Change it when you change the disclosure wording.', 'mailerhive' ), 'regular-text code' );
+		self::heading( __( 'FluentCart', 'mailerhive' ) );
+		self::check( $s, 'module_fluentcart_lifecycle', __( 'Lifecycle tags', 'mailerhive' ), __( 'Tag MailerPress contacts from FluentCart purchases, refunds and abandoned checkouts', 'mailerhive' ), __( 'A paid order can create a contact on the customer list below. Existing contacts are never re-subscribed.', 'mailerhive' ) );
+		self::text( $s, 'fc_customer_list', __( 'Customer list', 'mailerhive' ), __( 'MailerPress list name for paying customers.', 'mailerhive' ) );
+		self::area( $s, 'fc_category_tags', __( 'Category tags', 'mailerhive' ), __( 'One per line as <code>product-category-slug | Tag name</code>. Buyers of products in that category get the tag.', 'mailerhive' ), 4, true );
+		self::heading( __( 'MailerPress editor', 'mailerhive' ) );
+		self::check( $s, 'module_rich_paste', __( 'Rich paste', 'mailerhive' ), __( 'Paste Google Docs and block-editor content into MailerPress as native email blocks', 'mailerhive' ) );
+		self::heading( __( 'Imports', 'mailerhive' ) );
+		self::text( $s, 'substack_publication', __( 'Substack publication', 'mailerhive' ), __( 'Subdomain only, for example <code>yourname</code> for yourname.substack.com. Used by the importer and relinking.', 'mailerhive' ), 'regular-text code' );
+	}
+
+	/** Register the configured signup form with the consent policy. */
+	private static function register_signup_form(): string {
+		if ( ! class_exists( '\\MailerHive\\Modules\\Consent_Policy' ) ) {
+			return __( 'Turn on the consent policy module first.', 'mailerhive' );
+		}
+		$slug = (string) self::get( 'form_slug' );
+		$post = $slug ? get_page_by_path( $slug, OBJECT, 'core-form' ) : null;
+		if ( ! $post || ! function_exists( 'cf_get_form' ) ) {
+			return __( 'Choose a Core Forms signup form on the General tab first.', 'mailerhive' );
+		}
+		$form   = cf_get_form( (int) $post->ID );
+		$action = null;
+		foreach ( (array) ( $form->settings['actions'] ?? array() ) as $a ) {
+			if ( is_array( $a ) && 'mailerpress' === ( $a['type'] ?? '' ) ) {
+				$action = $a;
+				break;
+			}
+		}
+		if ( ! $action || empty( $action['_cf_action_id'] ) ) {
+			return __( 'The signup form has no MailerPress action.', 'mailerhive' );
+		}
+		$def  = $form->get_schema() ?: \Core_Forms\Schema\MarkupParser::parse( (string) $form->markup );
+		$gate = null;
+		foreach ( $def->get_input_fields() as $f ) {
+			if ( in_array( $f->type, array( 'checkbox', 'consent' ), true ) && $f->required ) {
+				$gate = $f;
+				break;
+			}
+		}
+		if ( ! $gate ) {
+			return __( 'The signup form needs a required consent checkbox.', 'mailerhive' );
+		}
+		global $wpdb;
+		$list_name = (string) $wpdb->get_var( $wpdb->prepare( "SELECT name FROM {$wpdb->prefix}mailerpress_lists WHERE list_id = %d", (int) ( $action['list_id'] ?? 0 ) ) );
+		$tags      = array();
+		foreach ( array_filter( array( (int) ( $action['tag_id'] ?? 0 ) ) ) as $tid ) {
+			$tags[ (string) $tid ] = (string) $wpdb->get_var( $wpdb->prepare( "SELECT name FROM {$wpdb->prefix}mailerpress_tags WHERE tag_id = %d", $tid ) );
+		}
+		$email_field = (string) ( $action['email_field'] ?? 'email' );
+		$policy      = get_option( \MailerHive\Modules\Consent_Policy::OPTION, array() );
+		$policy      = is_array( $policy ) ? $policy : array();
+		$policy     += array( 'version' => 1, 'installed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'no_send' => true, 'forms' => array() );
+		$policy['forms'][ (string) $post->ID ] = array(
+			'email_field'   => $email_field,
+			'consent_field' => $gate->name,
+			'consent_value' => '' !== (string) $gate->default_value ? (string) $gate->default_value : '1',
+			'required'      => (bool) $gate->required,
+			'disclosure'    => (string) $gate->label,
+			'routes'        => array(
+				(string) $action['_cf_action_id'] => array(
+					'contract'   => \MailerHive\Modules\Consent_Policy::contract( $action ),
+					'list_name'  => $list_name,
+					'tags'       => $tags,
+					'preference' => '',
+				),
+			),
+		);
+		update_option( \MailerHive\Modules\Consent_Policy::OPTION, $policy, false );
+		/* translators: %s: form title */
+		return sprintf( __( '“%s” is registered with the consent policy.', 'mailerhive' ), $post->post_title );
 	}
 
 	private static function tools_tab(): void {
@@ -629,15 +786,15 @@ final class Settings {
 				return '<span style="color:#b32d2e">not loaded</span>';
 			}
 			$file = wp_normalize_path( (string) ( new \ReflectionClass( $class ) )->getFileName() );
-			return str_contains( $file, '/plugins/mailerhive/' ) ? 'MailerHive' : 'old MU plugin';
+			return str_contains( $file, '/mailerhive/' ) ? 'on' : 'loaded from elsewhere';
 		};
 		$last = get_option( self::SYNC_OPTION, array() );
 		$next = wp_next_scheduled( MailerPress_Bridge::SYNC_HOOK );
 		$mpv  = defined( 'MAILERPRESS_VERSION' ) ? MAILERPRESS_VERSION : ( MailerPress_Bridge::available() ? 'active' : 'not active' );
 		$rows = array(
 			'MailerPress'                 => esc_html( (string) $mpv ),
-			'Consent policy module'       => $where( 'GT_Core_Forms_MailerPress_Policy' ),
-			'FluentCart lifecycle module' => $where( 'GT_MailerPress_FluentCart_Lifecycle' ),
+			'Consent policy module'       => self::on( 'module_consent_policy' ) ? $where( 'MailerHive\\Modules\\Consent_Policy' ) : 'off',
+			'FluentCart lifecycle module' => self::on( 'module_fluentcart_lifecycle' ) ? $where( 'MailerHive\\Modules\\FluentCart_Lifecycle' ) : 'off',
 			'Issues'                      => $counts ? esc_html( implode( ', ', array_map( static fn( $k, $v ) => "{$v} {$k}", array_keys( $counts ), $counts ) ) ) : '0',
 			'Issue URLs'                  => '<code>' . esc_html( home_url( '/' . self::issue_base() . '/{slug}/' ) ) . '</code>',
 			'Last campaign sync'          => $last ? esc_html( sprintf( '%s: %d linked, %d published', wp_date( 'M j, Y H:i', (int) $last['time'] ), $last['linked'], $last['mirrored'] ) ) : 'never',
@@ -666,7 +823,7 @@ final class Settings {
 			'import',
 			'Import from Substack',
 			'Images are copied into the media library. Already-imported posts are skipped.',
-			'<p><label>Publication subdomain <input name="publication" value="gauravtiwari" class="regular-text code"></label></p><p><label>Post slugs, one per line<br><textarea name="slugs" rows="4" class="large-text code"></textarea></label></p>'
+			'<p><label>' . esc_html__( 'Publication subdomain', 'mailerhive' ) . ' <input name="publication" value="' . esc_attr( (string) self::get( 'substack_publication' ) ) . '" class="regular-text code" placeholder="yourname"></label></p><p><label>Post slugs, one per line<br><textarea name="slugs" rows="4" class="large-text code"></textarea></label></p>'
 		);
 	}
 }

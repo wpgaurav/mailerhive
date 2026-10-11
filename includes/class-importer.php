@@ -11,9 +11,12 @@ final class Importer {
 	/**
 	 * @return array{ok:bool,id:int,message:string}
 	 */
-	public static function substack( string $slug, string $publication = 'gauravtiwari', array $overrides = array(), bool $dry = false ): array {
+	public static function substack( string $slug, string $publication = '', array $overrides = array(), bool $dry = false ): array {
 		$slug = sanitize_title( $slug );
-		$pub  = sanitize_key( $publication );
+		$pub  = sanitize_key( $publication ?: (string) Settings::get( 'substack_publication' ) );
+		if ( '' === $pub ) {
+			return array( 'ok' => false, 'id' => 0, 'message' => 'no Substack publication set' );
+		}
 		$res  = wp_remote_get( "https://{$pub}.substack.com/api/v1/posts/{$slug}", array( 'timeout' => 30 ) );
 		$data = json_decode( (string) wp_remote_retrieve_body( $res ), true );
 		if ( empty( $data['body_html'] ) ) {
