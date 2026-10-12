@@ -23,7 +23,7 @@ final class Settings {
 		'mailerpress' => array( 'auto_draft', 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
 		'modules'     => array( 'module_consent_policy', 'module_fluentcart_lifecycle', 'module_rich_paste', 'module_paid' ),
-		'paid'        => array( 'paid_resubscribe', 'paid_add_free_list', 'paid_show_on_landing', 'paid_show_free' ),
+		'paid'        => array( 'paid_resubscribe', 'paid_add_free_list', 'paid_show_on_landing', 'paid_show_free', 'paid_products_in_shop' ),
 	);
 
 	const TABS = array(
@@ -121,6 +121,7 @@ final class Settings {
 			'paid_plans_heading'      => '',
 			'paid_plans_intro'        => '',
 			'paid_show_free'          => true,
+			'paid_products_in_shop'   => false,
 			'free_tier_name'          => 'Free',
 			'free_tier_description'   => '',
 			'paid_seeded'             => false,

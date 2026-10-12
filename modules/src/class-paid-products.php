@@ -98,6 +98,7 @@ final class Products {
 			return $fail( is_wp_error( $created ) ? $created->get_error_message() : __( 'FluentCart could not create the product.', 'mailerhive' ) );
 		}
 		$product_id = (int) $created['data']['ID'];
+		Visibility::mark( $product_id );
 		$detail     = $created['data']['product_details'] ?? null;
 		$detail_id  = (int) ( is_object( $detail ) ? ( $detail->id ?? 0 ) : ( $detail['id'] ?? 0 ) );
 
