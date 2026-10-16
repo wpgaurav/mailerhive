@@ -33,6 +33,9 @@ final class Access {
 
 	private static $rank = null;
 
+	/** Stops preview rendering from running the paywall filters again. */
+	private static $in_preview = false;
+
 	public static function boot(): void {
 		add_action( 'init', array( __CLASS__, 'register_meta' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'consume_link' ), 1 );
@@ -41,6 +44,9 @@ final class Access {
 		add_filter( 'mailerhive_issue_badge', array( __CLASS__, 'badge' ), 10, 2 );
 		add_filter( 'the_content_feed', array( __CLASS__, 'feed_content' ), 99 );
 		add_filter( 'the_excerpt_rss', array( __CLASS__, 'feed_content' ), 99 );
+		add_filter( 'get_the_excerpt', array( __CLASS__, 'guard_excerpt_early' ), 9, 2 );
+		add_filter( 'get_the_excerpt', array( __CLASS__, 'guard_excerpt' ), 11, 2 );
+		add_filter( 'the_content', array( __CLASS__, 'guard_secondary_content' ), 8 );
 		add_filter( 'rest_prepare_' . Issues::TYPE, array( __CLASS__, 'rest_content' ), 10, 2 );
 		add_action( 'wp_head', array( __CLASS__, 'schema' ), 5 );
 		add_action( 'wp_ajax_mailerhive_unlock', array( __CLASS__, 'ajax_unlock' ) );
@@ -201,7 +207,16 @@ final class Access {
 	}
 
 	private static function ip(): string {
-		return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$via    = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
+		// Trust the first forwarded hop only when the immediate peer is a private proxy.
+		if ( $remote && $via && ! filter_var( $remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+			$hop = trim( explode( ',', $via )[0] );
+			if ( filter_var( $hop, FILTER_VALIDATE_IP ) ) {
+				return $hop;
+			}
+		}
+		return $remote;
 	}
 
 	/** ?mh_access=token: verify once, set the reader cookie, drop the token from the URL. */
@@ -212,9 +227,8 @@ final class Access {
 		nocache_headers();
 		$token = sanitize_text_field( wp_unslash( $_GET[ self::LINK_ARG ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$email = self::verify( $token, 'link' );
-		$used  = 'mh_used_' . md5( $token );
-		if ( $email && ! get_transient( $used ) ) {
-			set_transient( $used, 1, self::LINK_TTL );
+		// add_option is atomic, so two requests cannot both spend the same link.
+		if ( $email && add_option( 'mailerhive_used_' . md5( $token ), time(), '', false ) ) {
 			self::set_cookies( $email );
 		}
 		wp_safe_redirect( remove_query_arg( array( self::LINK_ARG, 'mh_link' ) ) );
@@ -222,7 +236,11 @@ final class Access {
 	}
 
 	public static function sign_out(): void {
-		$back = isset( $_GET['back'] ) ? esc_url_raw( wp_unslash( $_GET['back'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- signing out of a reading cookie is harmless.
+		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+			wp_die( esc_html__( 'Sign-out has to be submitted from the account form.', 'mailerhive' ), '', array( 'response' => 405 ) );
+		}
+		check_admin_referer( 'mailerhive_reader_signout' );
+		$back = isset( $_POST['back'] ) ? esc_url_raw( wp_unslash( $_POST['back'] ) ) : '';
 		foreach ( array( self::COOKIE, self::HINT_COOKIE ) as $name ) {
 			setcookie( $name, '', array( 'expires' => time() - DAY_IN_SECONDS, 'path' => COOKIEPATH ?: '/', 'domain' => COOKIE_DOMAIN, 'secure' => is_ssl(), 'httponly' => self::COOKIE === $name, 'samesite' => 'Lax' ) );
 		}
@@ -277,35 +295,62 @@ final class Access {
 		return $out;
 	}
 
+	/** Plain preview text, taken from the raw issue before any content filter runs. */
+	public static function preview_plain( \WP_Post $post ): string {
+		return wp_strip_all_tags( self::preview_source( $post ) );
+	}
+
 	public static function preview_html( \WP_Post $post ): string {
+		if ( self::$in_preview ) {
+			return '';
+		}
+		self::$in_preview = true;
+		try {
+			return (string) apply_filters( 'the_content', self::preview_source( $post ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+		} finally {
+			self::$in_preview = false;
+		}
+	}
+
+	/** Block or More preview when present; otherwise the first few raw HTML elements. */
+	private static function preview_source( \WP_Post $post ): string {
 		$raw = self::preview_raw( $post );
 		if ( '' !== $raw ) {
-			return (string) apply_filters( 'the_content', $raw ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+			return $raw;
 		}
-		// Classic or imported HTML: keep the first few top-level elements.
-		$html = (string) apply_filters( 'the_content', $post->post_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+		return self::classic_slice( (string) $post->post_content );
+	}
+
+	/** First few top-level elements of classic or imported HTML, before shortcodes run. */
+	private static function classic_slice( string $html ): string {
 		$keep = max( 1, (int) Settings::get( 'paid_preview_blocks' ) );
 		$doc  = new \DOMDocument();
 		$prev = libxml_use_internal_errors( true );
-		$doc->loadHTML( '<?xml encoding="utf-8"?><div id="mh-root">' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+		$flags = LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD;
+		if ( defined( 'LIBXML_NONET' ) ) {
+			$flags |= LIBXML_NONET;
+		}
+		$doc->loadHTML( '<?xml encoding="utf-8"?><div id="mh-root">' . $html . '</div>', $flags );
 		libxml_clear_errors();
 		libxml_use_internal_errors( $prev );
 		$root = $doc->getElementById( 'mh-root' );
-		if ( ! $root ) {
-			return wp_trim_words( wp_strip_all_tags( $html ), 80 );
-		}
-		$out = '';
-		$n   = 0;
-		foreach ( iterator_to_array( $root->childNodes ) as $node ) {
-			if ( XML_ELEMENT_NODE !== $node->nodeType || '' === trim( $node->textContent ) ) {
-				continue;
+		$out  = '';
+		$n    = 0;
+		if ( $root ) {
+			foreach ( iterator_to_array( $root->childNodes ) as $node ) {
+				if ( XML_ELEMENT_NODE !== $node->nodeType || '' === trim( $node->textContent ) ) {
+					continue;
+				}
+				$out .= $doc->saveHTML( $node );
+				if ( ++$n >= $keep ) {
+					break;
+				}
 			}
-			$out .= $doc->saveHTML( $node );
-			if ( ++$n >= $keep ) {
-				break;
-			}
 		}
-		return $out;
+		if ( '' !== $out ) {
+			return $out;
+		}
+		return '<p>' . esc_html( wp_trim_words( wp_strip_all_tags( $html ), 80 ) ) . '</p>';
 	}
 
 	public static function paywall( \WP_Post $post ): string {
@@ -513,7 +558,11 @@ final class Access {
 			$out .= '<p><a class="mh-btn mh-btn--ghost" href="' . esc_url( $portal ) . '">' . esc_html__( 'Manage billing and renewals', 'mailerhive' ) . '</a></p>';
 		}
 		if ( self::cookie_email() ) {
-			$out .= '<p><a href="' . esc_url( add_query_arg( array( 'action' => 'mailerhive_reader_signout', 'back' => rawurlencode( $back ) ), admin_url( 'admin-post.php' ) ) ) . '">' . esc_html__( 'Forget this device', 'mailerhive' ) . '</a></p>';
+			$out .= '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+			$out .= '<input type="hidden" name="action" value="mailerhive_reader_signout" />';
+			$out .= '<input type="hidden" name="back" value="' . esc_attr( $back ) . '" />';
+			$out .= wp_nonce_field( 'mailerhive_reader_signout', '_wpnonce', true, false );
+			$out .= '<p><button type="submit">' . esc_html__( 'Forget this device', 'mailerhive' ) . '</button></p></form>';
 		}
 		return $out . '</div>';
 	}
@@ -570,6 +619,43 @@ final class Access {
 		return self::preview_html( $post ) . '<p><a href="' . esc_url( get_permalink( $post ) ) . '">' . esc_html( sprintf( /* translators: %s: tier name */ __( 'Continue reading (for %s subscribers)', 'mailerhive' ), Plans::name( self::required( $post ) ) ) ) . '</a></p>';
 	}
 
+	/** Search, archives, and other secondary views. The issue page uses mailerhive_issue_body. */
+	public static function guard_secondary_content( string $content ): string {
+		if ( self::$in_preview || is_admin() || is_singular( Issues::TYPE ) ) {
+			return $content;
+		}
+		$post = get_post();
+		if ( ! $post instanceof \WP_Post || Issues::TYPE !== $post->post_type || ! self::is_paid( $post ) || self::can_read( $post ) ) {
+			return $content;
+		}
+		return self::preview_html( $post );
+	}
+
+	/**
+	 * Runs before WordPress fills an empty excerpt from the full post.
+	 * A non-empty return keeps shortcodes in the paid part from running.
+	 */
+	public static function guard_excerpt_early( $excerpt, $post ) {
+		if ( self::$in_preview || ! $post instanceof \WP_Post || ! self::excerpt_locked( $post ) || '' !== trim( (string) $excerpt ) ) {
+			return $excerpt;
+		}
+		$text = self::preview_plain( $post );
+		return '' === trim( $text ) ? __( 'Subscribers only', 'mailerhive' ) : wp_trim_words( $text, 55 );
+	}
+
+	public static function guard_excerpt( $excerpt, $post ): string {
+		$excerpt = (string) $excerpt;
+		if ( self::$in_preview || ! $post instanceof \WP_Post || ! self::excerpt_locked( $post ) ) {
+			return $excerpt;
+		}
+		$text = self::preview_plain( $post );
+		return '' === $text ? '' : wp_trim_words( $text, 55 );
+	}
+
+	private static function excerpt_locked( \WP_Post $post ): bool {
+		return Issues::TYPE === $post->post_type && self::is_paid( $post ) && ! current_user_can( 'edit_post', $post->ID ) && ! self::can_read( $post );
+	}
+
 	public static function rest_content( \WP_REST_Response $response, \WP_Post $post ): \WP_REST_Response {
 		if ( ! self::is_paid( $post ) || current_user_can( 'edit_post', $post->ID ) ) {
 			return $response;
@@ -579,6 +665,10 @@ final class Access {
 			$data['content']['rendered']  = self::preview_html( $post );
 			$data['content']['protected'] = true;
 			unset( $data['content']['raw'] );
+		}
+		if ( isset( $data['excerpt'] ) && is_array( $data['excerpt'] ) ) {
+			$data['excerpt']['rendered'] = wpautop( esc_html( wp_trim_words( self::preview_plain( $post ), 55 ) ) );
+			unset( $data['excerpt']['raw'] );
 		}
 		$response->set_data( $data );
 		return $response;

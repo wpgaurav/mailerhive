@@ -56,7 +56,12 @@ final class Updater {
 		$identity = hash( 'sha256', home_url( '/' ) . wp_json_encode( $credentials ) . MAILERHIVE_VERSION );
 		$cached   = get_transient( self::CACHE );
 		if ( ! $force && is_array( $cached ) && ( $cached['identity'] ?? '' ) === $identity && is_array( $cached['data'] ?? null ) ) {
-			return $cached['data'];
+			$data    = $cached['data'];
+			$package = is_string( $data['package'] ?? null ) ? $data['package'] : '';
+			if ( '' !== $package && ! self::package_allowed( $package ) ) {
+				$data['package'] = '';
+			}
+			return $data;
 		}
 		self::$fetching = true;
 		try {
@@ -157,6 +162,9 @@ final class Updater {
 		$same_host = wp_parse_url( home_url( '/' ), PHP_URL_HOST ) === wp_parse_url( Client::STORE, PHP_URL_HOST );
 		$data      = $this->metadata( ! ( $same_host && file_exists( ABSPATH . '.maintenance' ) ) );
 		if ( ! $data || is_wp_error( $data ) || empty( $data['package'] ) || ! is_string( $data['package'] ) || ! version_compare( (string) $data['new_version'], MAILERHIVE_VERSION, '>' ) ) {
+			return new \WP_Error( 'mailerhive_update_unavailable', __( 'A licensed MailerHive update is not available. Check the license and try again.', 'mailerhive' ) );
+		}
+		if ( ! self::package_allowed( $data['package'] ) ) {
 			return new \WP_Error( 'mailerhive_update_unavailable', __( 'A licensed MailerHive update is not available. Check the license and try again.', 'mailerhive' ) );
 		}
 		require_once ABSPATH . 'wp-admin/includes/file.php';

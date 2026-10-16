@@ -31,7 +31,10 @@ final class FluentCart_Lifecycle {
 		add_action( 'fluent_cart/order_paid_done', array( __CLASS__, 'classify_paid_order' ), 30, 1 );
 		add_action( 'fluent_cart/order_refunded', array( __CLASS__, 'classify_refund' ), 30, 1 );
 		add_action( self::SWEEP_HOOK, array( __CLASS__, 'run_abandoned_sweep' ) );
+		add_action( 'init', array( __CLASS__, 'schedule' ) );
+	}
 
+	public static function schedule(): void {
 		if ( wp_next_scheduled( self::LEGACY_SWEEP_HOOK ) ) {
 			wp_clear_scheduled_hook( self::LEGACY_SWEEP_HOOK );
 		}
@@ -41,11 +44,34 @@ final class FluentCart_Lifecycle {
 	}
 
 	public static function record_checkout_consent( $data ): void {
-		// FluentCart validates the checkout request before this action runs.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( empty( $_POST['mailerpress_subscribe'] ) ) {
+		$disclosure = (string) \MailerHive\Settings::get( 'fc_consent_disclosure' );
+		if ( '' === $disclosure ) {
 			return;
 		}
+		// FluentCart validates the checkout request before this action runs.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted = '';
+		if ( isset( $_POST['mailerpress_disclosure'] ) ) {
+			$posted = wp_unslash( $_POST['mailerpress_disclosure'] );
+		} elseif ( isset( $_POST['mailerpress_subscribe'] ) ) {
+			$posted = wp_unslash( $_POST['mailerpress_subscribe'] );
+		}
+		if ( ! is_string( $posted ) || $posted !== $disclosure ) {
+			return;
+		}
+
+		$email = self::email_from_event( $data );
+		if ( '' === $email ) {
+			return;
+		}
+		set_transient(
+			'mh_fc_consent_' . md5( strtolower( $email ) ),
+			array(
+				'recorded_at' => current_time( 'mysql', true ),
+				'disclosure'  => $disclosure,
+			),
+			7 * DAY_IN_SECONDS
+		);
 
 		$contact = self::contact_from_event( $data );
 		if ( ! $contact ) {
@@ -59,16 +85,24 @@ final class FluentCart_Lifecycle {
 		self::set_custom_field( (int) $contact->contact_id, 'consent_version', self::CONSENT_VERSION );
 
 		global $wpdb;
-		$wpdb->update(
-			$wpdb->prefix . 'mailerpress_contact',
+		$table   = $wpdb->prefix . 'mailerpress_contact';
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT opt_in_details FROM {$table} WHERE contact_id = %d", (int) $contact->contact_id ) );
+		$details = is_string( $current ) ? json_decode( $current, true ) : array();
+		if ( ! is_array( $details ) ) {
+			$details = array();
+		}
+		$details = array_merge(
+			$details,
 			array(
-				'opt_in_details' => wp_json_encode(
-					array(
-						'source'              => 'fluentcart_checkout',
-						'consent_recorded_at' => $recorded_at,
-						'consent_version'     => self::CONSENT_VERSION,
-					)
-				),
+				'source'              => 'fluentcart_checkout',
+				'consent_recorded_at' => $recorded_at,
+				'consent_version'     => self::CONSENT_VERSION,
+			)
+		);
+		$wpdb->update(
+			$table,
+			array(
+				'opt_in_details' => wp_json_encode( $details ),
 			),
 			array( 'contact_id' => (int) $contact->contact_id ),
 			array( '%s' ),
@@ -160,18 +194,19 @@ final class FluentCart_Lifecycle {
 			return null;
 		}
 
-		$customer = is_array( $data ) ? ( $data['customer'] ?? null ) : null;
-		$payload  = array(
+		$customer  = is_array( $data ) ? ( $data['customer'] ?? null ) : null;
+		$consented = self::checkout_consent_granted( $email );
+		$payload   = array(
 			'email'               => $email,
 			'first_name'          => (string) ( is_object( $customer ) ? ( $customer->first_name ?? '' ) : '' ),
 			'last_name'           => (string) ( is_object( $customer ) ? ( $customer->last_name ?? '' ) : '' ),
-			'contactStatus'       => 'subscribed',
+			'contactStatus'       => $consented ? 'subscribed' : 'unsubscribed',
 			'opt_in_source'       => 'fluentcart_purchase',
 			'update_existing'     => false,
 			'assign_default_list' => false,
 		);
 
-		$list_id = self::list_id_by_name( (string) ( \MailerHive\Settings::get( 'fc_customer_list' ) ?: 'Customers' ) );
+		$list_id = $consented ? self::list_id_by_name( (string) ( \MailerHive\Settings::get( 'fc_customer_list' ) ?: 'Customers' ) ) : 0;
 		if ( $list_id ) {
 			$payload['lists'] = array( array( 'id' => $list_id ) );
 		}
@@ -201,8 +236,8 @@ final class FluentCart_Lifecycle {
 				 INNER JOIN {$wpdb->prefix}fct_orders o ON o.customer_id = c.id
 				 WHERE c.email <> ''
 				 GROUP BY c.id, c.email, c.first_name, c.last_name
-				 HAVING SUM( o.status = 'completed' ) = 0
-				    AND SUM( o.status = 'on-hold' ) > 0
+				 HAVING SUM( o.payment_status IN ('paid', 'partially_refunded') ) = 0
+				    AND SUM( o.status IN ('on-hold', 'pending', 'processing') ) > 0
 				    AND MIN( o.created_at ) <= %s",
 				$cutoff
 			),
@@ -260,6 +295,29 @@ final class FluentCart_Lifecycle {
 		return (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT list_id FROM {$wpdb->prefix}mailerpress_lists WHERE name = %s LIMIT 1", $name )
 		);
+	}
+
+	/** Checkout posted the saved disclosure, or this email already has that consent on file. */
+	private static function checkout_consent_granted( string $email ): bool {
+		$stored = get_transient( 'mh_fc_consent_' . md5( strtolower( $email ) ) );
+		if ( is_array( $stored ) && ! empty( $stored['disclosure'] ) ) {
+			return true;
+		}
+		global $wpdb;
+		$wpdb->last_error = '';
+		$value            = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT cf.field_value FROM {$wpdb->prefix}mailerpress_contact c
+				 INNER JOIN {$wpdb->prefix}mailerpress_contact_custom_fields cf ON cf.contact_id = c.contact_id
+				 WHERE c.email = %s AND cf.field_key = 'consent_form'
+				 LIMIT 1",
+				$email
+			)
+		);
+		if ( $wpdb->last_error ) {
+			return false;
+		}
+		return 'fluentcart_checkout' === $value;
 	}
 
 	private static function email_from_event( $data ): string {

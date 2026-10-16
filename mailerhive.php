@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       MailerHive
  * Description:       Beehiiv- and Ghost-style newsletter publishing for MailerPress: a public web archive of issues, paid tiers sold through FluentCart, a theme-free reading page with light/dark mode, one-click MailerPress drafts, Substack import, and optional consent, FluentCart and editor modules.
- * Version:           1.4.3
+ * Version:           1.4.4
  * Requires at least: 6.6
  * Requires PHP:      8.1
  * Author:            Gaurav Tiwari
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MAILERHIVE_VERSION', '1.4.3' );
+define( 'MAILERHIVE_VERSION', '1.4.4' );
 define( 'MAILERHIVE_FILE', __FILE__ );
 define( 'MAILERHIVE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILERHIVE_URL', plugin_dir_url( __FILE__ ) );
@@ -45,6 +45,17 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once MAILERHIVE_DIR . 'includes/class-cli.php';
 	WP_CLI::add_command( 'mailerhive', 'MailerHive\\CLI' );
 }
+
+add_action(
+	'init',
+	static function (): void {
+		if ( MailerHive\Settings::on( 'module_paid' ) || ! get_option( 'mailerhive_paid_db' ) ) {
+			return;
+		}
+		require_once MAILERHIVE_DIR . 'modules/src/class-paid-members.php';
+		MailerHive\Modules\Paid\Members::register_privacy();
+	}
+);
 
 MailerHive\Settings::init();
 MailerHive\Issues::init();

@@ -81,11 +81,6 @@ final class Shell {
 		if ( ! self::context() ) {
 			return;
 		}
-		if ( 'archive' === self::context() && is_paged() ) {
-			// One archive page lists every issue; paged URLs fold back into it.
-			wp_safe_redirect( get_post_type_archive_link( Issues::TYPE ), 301 );
-			exit;
-		}
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), PHP_INT_MAX );
 		add_action( 'wp_footer', array( __CLASS__, 'dequeue_theme_assets' ), 19 );
 		add_action( 'wp_head', array( __CLASS__, 'head_html' ), 99 );

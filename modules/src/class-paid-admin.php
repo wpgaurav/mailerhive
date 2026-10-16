@@ -115,7 +115,7 @@ final class Admin {
 		self::number_row( $s, 'paid_preview_blocks', __( 'Preview length', 'mailerhive' ), __( 'Blocks shown before the paywall when the issue has no More block.', 'mailerhive' ) );
 		self::number_row( $s, 'paid_grace_days', __( 'Grace period (days)', 'mailerhive' ), __( 'How long a subscription keeps access after a missed renewal date while FluentCart retries the payment.', 'mailerhive' ) );
 		self::number_row( $s, 'paid_cookie_days', __( 'Remember readers for (days)', 'mailerhive' ), __( 'How long a reading link keeps a browser signed in. Access still ends when the subscription does.', 'mailerhive' ) );
-		self::check_row( $s, 'paid_resubscribe', __( 'Purchases', 'mailerhive' ), __( 'Re-subscribe a contact who had unsubscribed when they buy a paid plan', 'mailerhive' ), __( 'Buying the paid newsletter is a direct request to receive it. Bounced and complaint contacts are never changed. The purchase is saved as consent evidence on the contact.', 'mailerhive' ) );
+		self::check_row( $s, 'paid_resubscribe', __( 'Purchases', 'mailerhive' ), __( 'Re-subscribe a contact who had unsubscribed when they buy a paid plan', 'mailerhive' ), __( 'Buying the paid newsletter is a direct request to receive it. Pending, bounced, complained, and suppressed contacts are never changed. The purchase is added to the contact’s existing consent record.', 'mailerhive' ) );
 		self::check_row( $s, 'paid_add_free_list', __( 'Free issues', 'mailerhive' ), __( 'Also add paying readers to the free newsletter lists', 'mailerhive' ), __( 'So they keep getting free issues. They stay on those lists after a paid plan ends.', 'mailerhive' ) );
 
 		self::heading_row( __( 'Plans on the site', 'mailerhive' ) );

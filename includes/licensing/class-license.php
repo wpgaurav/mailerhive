@@ -86,6 +86,12 @@ final class License {
 		if ( $credentials ) {
 			$data = $this->client->request( 'deactivate_license', $credentials );
 			if ( is_wp_error( $data ) ) {
+				if ( 'mailerhive_license_connection' === $data->get_error_code() ) {
+					delete_option( self::OPTION );
+					Updater::clear_cache();
+					delete_site_transient( 'update_plugins' );
+					return new \WP_Error( 'mailerhive_license_disconnected_local', __( 'The license key was removed from this site, but the store could not be reached, so the seat may still be in use.', 'mailerhive' ) );
+				}
 				return $data;
 			}
 			if ( 'deactivated' !== ( $data['status'] ?? '' ) ) {

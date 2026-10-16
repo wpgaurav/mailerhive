@@ -15,7 +15,11 @@ the_post();
 $mailerhive_post       = get_post();
 $mailerhive_subtitle   = Issues::subtitle( $mailerhive_post );
 $mailerhive_neighbours = Issues::neighbours( $mailerhive_post );
-$mailerhive_words      = str_word_count( wp_strip_all_tags( (string) $mailerhive_post->post_content ) );
+$mailerhive_text = (string) $mailerhive_post->post_content;
+if ( class_exists( '\MailerHive\Modules\Paid\Access' ) && \MailerHive\Modules\Paid\Access::is_paid( $mailerhive_post ) && ! \MailerHive\Modules\Paid\Access::can_read( $mailerhive_post ) ) {
+	$mailerhive_text = \MailerHive\Modules\Paid\Access::preview_plain( $mailerhive_post );
+}
+$mailerhive_words = str_word_count( wp_strip_all_tags( $mailerhive_text ) );
 $mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / 230 ) );
 ?>
 <main id="mh-main" class="mh-main">

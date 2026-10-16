@@ -47,15 +47,33 @@ final class MP_Store {
 		return self::contact( $email );
 	}
 
-	/** Mark a contact subscribed and keep the evidence on the contact row. */
+	/**
+	 * Mark a contact subscribed and merge this purchase into the existing opt-in record.
+	 * Earlier consent keys are kept. Purchase history is capped so the column cannot grow without bound.
+	 */
 	public static function resubscribe( int $contact_id, array $evidence ): void {
 		global $wpdb;
+		$table   = $wpdb->prefix . 'mailerpress_contact';
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT opt_in_details FROM {$table} WHERE contact_id = %d", $contact_id ) );
+		$details = is_string( $current ) ? json_decode( $current, true ) : array();
+		if ( ! is_array( $details ) ) {
+			$details = array();
+		}
+		$history = isset( $details['mailerhive_purchases'] ) && is_array( $details['mailerhive_purchases'] ) ? $details['mailerhive_purchases'] : array();
+		unset( $details['mailerhive_purchases'] );
+		$history[] = $evidence;
+		if ( count( $history ) > 20 ) {
+			$history = array_slice( $history, -20 );
+		}
+		$details = array_merge( $details, $evidence );
+		$details['mailerhive_purchases'] = $history;
+
 		$wpdb->update(
-			$wpdb->prefix . 'mailerpress_contact',
+			$table,
 			array(
 				'subscription_status' => 'subscribed',
 				'last_subscribed_at'  => current_time( 'mysql', true ),
-				'opt_in_details'      => wp_json_encode( $evidence ),
+				'opt_in_details'      => wp_json_encode( $details ),
 			),
 			array( 'contact_id' => $contact_id ),
 			array( '%s', '%s', '%s' ),

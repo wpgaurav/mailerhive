@@ -24,6 +24,14 @@ final class Issues {
 		add_filter( 'manage_' . self::TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . self::TYPE . '_posts_custom_column', array( __CLASS__, 'column' ), 10, 2 );
 		add_action( 'wp_after_insert_post', array( __CLASS__, 'purge' ), 30, 2 );
+		add_action( 'pre_get_posts', array( __CLASS__, 'archive_page_size' ) );
+	}
+
+	public static function archive_page_size( \WP_Query $query ): void {
+		if ( is_admin() || ! $query->is_main_query() || ! $query->is_post_type_archive( self::TYPE ) ) {
+			return;
+		}
+		$query->set( 'posts_per_page', 24 );
 	}
 
 	/**

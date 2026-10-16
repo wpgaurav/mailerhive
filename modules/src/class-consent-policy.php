@@ -32,6 +32,13 @@ final class Consent_Policy {
         if (false === get_option(self::OPTION, false) && false !== get_option(self::LEGACY_OPTION, false)) {
             update_option(self::OPTION, get_option(self::LEGACY_OPTION), false);
         }
+        add_action('init', [self::class, 'attach'], PHP_INT_MAX);
+        add_action('wp_loaded', [self::class, 'attach']);
+        add_action('cf_output_form_action_mailerpress_settings', [self::class, 'explain'], 30, 2);
+    }
+
+    /** Replace a late-registered native handler. Our own callback is left in place. */
+    public static function attach(): void {
         $hook = 'cf_process_form_action_mailerpress';
         foreach (($GLOBALS['wp_filter'][$hook]->callbacks ?? []) as $priority => $callbacks) {
             foreach ($callbacks as $callback) {
@@ -43,7 +50,6 @@ final class Consent_Policy {
                 }
             }
         }
-        add_action('cf_output_form_action_mailerpress_settings', [self::class, 'explain'], 30, 2);
     }
 
     /** MailerPress "Sign-up confirmation" (double opt-in) is switched on. */

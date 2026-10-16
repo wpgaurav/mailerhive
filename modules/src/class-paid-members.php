@@ -67,7 +67,11 @@ final class Members {
 			add_action( $hook, array( __CLASS__, 'queue_from_event' ), 40, 1 );
 		}
 		add_action( 'shutdown', array( __CLASS__, 'flush_queue' ), 5 );
-		add_action( self::SWEEP_HOOK, array( __CLASS__, 'sweep' ) );
+		add_action( 'init', array( __CLASS__, 'schedule' ) );
+		self::register_privacy();
+	}
+
+	public static function schedule(): void {
 		if ( ! wp_next_scheduled( self::SWEEP_HOOK ) ) {
 			wp_schedule_event( time() + 300, 'hourly', self::SWEEP_HOOK );
 		}
@@ -106,7 +110,9 @@ final class Members {
 				KEY status_expires (status, expires_at)
 			) {$charset};"
 		);
-		update_option( self::DB_OPTION, self::DB_VERSION, true );
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
+			update_option( self::DB_OPTION, self::DB_VERSION, true );
+		}
 	}
 
 	/* ---------- event intake ---------- */
@@ -150,11 +156,19 @@ final class Members {
 
 	public static function reconcile_customer( int $customer_id ): int {
 		global $wpdb;
-		$plans = Plans::by_variation();
 		if ( ! $customer_id || ! Plans::fluentcart_ready() ) {
 			return 0;
 		}
-		$customer = $wpdb->get_row( $wpdb->prepare( "SELECT id, user_id, email, first_name, last_name FROM {$wpdb->prefix}fct_customers WHERE id = %d", $customer_id ) );
+		$plans = Plans::by_variation();
+		// A failed catalog read looks like "no plans". Deleting grants from that would revoke paying readers.
+		if ( Plans::catalog_failed() ) {
+			return 0;
+		}
+		$wpdb->last_error = '';
+		$customer         = $wpdb->get_row( $wpdb->prepare( "SELECT id, user_id, email, first_name, last_name FROM {$wpdb->prefix}fct_customers WHERE id = %d", $customer_id ) );
+		if ( $wpdb->last_error ) {
+			return 0;
+		}
 		if ( ! $customer || ! is_email( (string) $customer->email ) ) {
 			return 0;
 		}
@@ -162,19 +176,49 @@ final class Members {
 		$now   = gmdate( 'Y-m-d H:i:s' );
 		$seen  = array();
 		$grace = max( 0, (int) Settings::get( 'paid_grace_days' ) ) * DAY_IN_SECONDS;
+		$subs  = array();
+		$items = array();
 
 		if ( $plans ) {
 			$ids = implode( ',', array_map( 'intval', array_keys( $plans ) ) );
 
-			// Subscriptions: access follows FluentCart's subscription state.
-			$subs = $wpdb->get_results(
+			// Fetch both result sets before writing. A failed lookup must not look like "no grants".
+			$wpdb->last_error = '';
+			$subs             = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT id, variation_id, parent_order_id, status, next_billing_date, expire_at, created_at
 					 FROM {$wpdb->prefix}fct_subscriptions WHERE customer_id = %d AND variation_id IN ({$ids})",
 					$customer_id
 				)
-			) ?: array();
-			foreach ( $subs as $sub ) {
+			);
+			if ( ! is_array( $subs ) || $wpdb->last_error ) {
+				return 0;
+			}
+			$wpdb->last_error = '';
+			$items            = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT oi.id AS item_id, oi.object_id AS variation_id, o.id AS order_id, o.payment_status, o.status,
+					        COALESCE(o.completed_at, o.created_at) AS paid_at
+					 FROM {$wpdb->prefix}fct_order_items oi
+					 INNER JOIN {$wpdb->prefix}fct_orders o ON o.id = oi.order_id
+					 WHERE o.customer_id = %d AND oi.object_id IN ({$ids}) AND o.type <> 'renewal'
+					 ORDER BY paid_at ASC, oi.id ASC",
+					$customer_id
+				)
+			);
+			if ( ! is_array( $items ) || $wpdb->last_error ) {
+				return 0;
+			}
+		}
+
+		$wpdb->last_error = '';
+		$stale            = $wpdb->get_col( $wpdb->prepare( "SELECT source FROM " . self::table() . " WHERE customer_id = %d AND (source LIKE 'sub:%%' OR source LIKE 'item:%%')", $customer_id ) );
+		if ( ! is_array( $stale ) || $wpdb->last_error ) {
+			return 0;
+		}
+
+		// Subscriptions: access follows FluentCart's subscription state.
+		foreach ( $subs as $sub ) {
 				$plan = $plans[ (int) $sub->variation_id ] ?? null;
 				$row  = $plan ? self::subscription_row( $sub, $now, $grace ) : null;
 				if ( ! $row ) {
@@ -197,19 +241,8 @@ final class Members {
 				);
 			}
 
-			// One-time purchases: fixed terms stack per tier, lifetime never ends.
-			$items = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT oi.id AS item_id, oi.object_id AS variation_id, o.id AS order_id, o.payment_status, o.status,
-					        COALESCE(o.completed_at, o.created_at) AS paid_at
-					 FROM {$wpdb->prefix}fct_order_items oi
-					 INNER JOIN {$wpdb->prefix}fct_orders o ON o.id = oi.order_id
-					 WHERE o.customer_id = %d AND oi.object_id IN ({$ids}) AND o.type <> 'renewal'
-					 ORDER BY paid_at ASC, oi.id ASC",
-					$customer_id
-				)
-			) ?: array();
-			$ends = array();
+		// One-time purchases: fixed terms stack per tier, lifetime never ends.
+		$ends = array();
 			foreach ( $items as $item ) {
 				$plan = $plans[ (int) $item->variation_id ] ?? null;
 				if ( ! $plan || 'subscription' === $plan['mode'] ) {
@@ -256,10 +289,8 @@ final class Members {
 					)
 				);
 			}
-		}
 
 		// Rows whose FluentCart record is gone (deleted order, unmapped plan).
-		$stale = $wpdb->get_col( $wpdb->prepare( "SELECT source FROM " . self::table() . " WHERE customer_id = %d AND (source LIKE 'sub:%%' OR source LIKE 'item:%%')", $customer_id ) );
 		foreach ( $stale as $source ) {
 			if ( ! isset( $seen[ $source ] ) ) {
 				$wpdb->delete( self::table(), array( 'source' => $source ), array( '%s' ) );
@@ -282,12 +313,12 @@ final class Members {
 			case 'active':
 			case 'trialing':
 				$status  = 'active';
-				$expires = $with( $next );
+				$expires = $with( $next ?: $end );
 				break;
 			case 'past_due':
 			case 'failing':
 				$status  = 'past_due';
-				$expires = $with( $next );
+				$expires = $with( $next ?: $end );
 				break;
 			case 'canceled':
 			case 'expiring':
@@ -306,6 +337,11 @@ final class Members {
 				break;
 			default:
 				return null; // pending, intended, created, authenticated: nothing paid yet
+		}
+		// A live subscription with no next bill and no end date would grant access forever.
+		if ( in_array( (string) $sub->status, array( 'active', 'trialing', 'past_due', 'failing' ), true ) && null === $expires ) {
+			$status  = 'expired';
+			$expires = $sub->created_at ? (string) $sub->created_at : $now;
 		}
 		if ( in_array( $status, self::LIVE, true ) && null !== $expires && $expires <= $now ) {
 			$status = 'expired';
@@ -337,12 +373,13 @@ final class Members {
 		if ( ! is_email( $email ) || ! Plans::tier( $tier ) ) {
 			return 0;
 		}
-		$now = gmdate( 'Y-m-d H:i:s' );
+		$now  = gmdate( 'Y-m-d H:i:s' );
+		$user = get_user_by( 'email', $email );
 		$wpdb->insert(
 			self::table(),
 			array(
 				'email'      => $email,
-				'user_id'    => (int) ( get_user_by( 'email', $email )->ID ?? 0 ),
+				'user_id'    => $user ? (int) $user->ID : 0,
 				'tier'       => $tier,
 				'mode'       => 'manual',
 				'status'     => null === $expires || $expires > $now ? 'active' : 'expired',
@@ -423,8 +460,10 @@ final class Members {
 			if ( ! $contact ) {
 				return;
 			}
-		} elseif ( $top && Settings::on( 'paid_resubscribe' ) && in_array( (string) $contact->subscription_status, array( 'unsubscribed', 'inactive', 'pending' ), true ) ) {
-			// Buying the paid newsletter is a direct request to receive it.
+		}
+		$blocked = self::mailing_blocked( $contact );
+		if ( $top && ! $blocked && Settings::on( 'paid_resubscribe' ) && in_array( (string) $contact->subscription_status, array( 'unsubscribed', 'inactive' ), true ) ) {
+			// Buying the paid newsletter is a direct request to receive it. Pending, bounced, and suppressed contacts stay as they are.
 			MP_Store::resubscribe(
 				(int) $contact->contact_id,
 				array(
@@ -440,7 +479,7 @@ final class Members {
 		foreach ( $tiers as $tier ) {
 			$list = (int) $tier['list_id'];
 			$tag  = sprintf( 'Paid: %s', $tier['name'] );
-			if ( $top && $tier['key'] === $top['key'] ) {
+			if ( $top && ! $blocked && $tier['key'] === $top['key'] ) {
 				MP_Store::add_to_list( $cid, $list );
 				MP_Store::add_tag( $cid, $tag );
 			} else {
@@ -451,16 +490,40 @@ final class Members {
 			}
 		}
 
-		if ( $top ) {
+		if ( $top && ! $blocked ) {
 			MP_Store::remove_tag( $cid, self::LAPSED_TAG );
 			if ( Settings::on( 'paid_add_free_list' ) ) {
 				foreach ( \MailerHive\Email::list_ids() as $free ) {
 					MP_Store::add_to_list( $cid, (int) $free );
 				}
 			}
-		} elseif ( self::rows_for( $email ) ) {
+		} elseif ( ! $blocked && self::rows_for( $email ) ) {
 			MP_Store::add_tag( $cid, self::LAPSED_TAG );
 		}
+	}
+
+	/**
+	 * A purchase must not put a contact back on a list after a bounce, complaint, or suppression.
+	 * A failed suppression lookup is treated as blocked.
+	 */
+	private static function mailing_blocked( object $contact ): bool {
+		global $wpdb;
+		$engagement = (string) ( $contact->engagement_status ?? '' );
+		if ( in_array( $engagement, array( 'bounced', 'invalid', 'suppressed', 'complained', 'spam' ), true ) ) {
+			return true;
+		}
+		$wpdb->last_error = '';
+		$n                = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->prefix}mailerpress_contact_tags ct JOIN {$wpdb->prefix}mailerpress_tags t ON t.tag_id = ct.tag_id WHERE ct.contact_id = %d AND t.name LIKE %s",
+				(int) $contact->contact_id,
+				'Suppression:%'
+			)
+		);
+		if ( $wpdb->last_error || null === $n ) {
+			return true;
+		}
+		return (int) $n > 0;
 	}
 
 	/* ---------- housekeeping ---------- */
@@ -493,16 +556,24 @@ final class Members {
 	public static function reconcile_all(): int {
 		global $wpdb;
 		$plans = Plans::by_variation();
-		if ( ! $plans || ! Plans::fluentcart_ready() ) {
+		if ( Plans::catalog_failed() || ! $plans || ! Plans::fluentcart_ready() ) {
 			return 0;
 		}
-		$ids = implode( ',', array_map( 'intval', array_keys( $plans ) ) );
-		$customers = $wpdb->get_col(
+		$ids              = implode( ',', array_map( 'intval', array_keys( $plans ) ) );
+		$wpdb->last_error = '';
+		$customers        = $wpdb->get_col(
 			"SELECT DISTINCT o.customer_id FROM {$wpdb->prefix}fct_order_items oi
 			 INNER JOIN {$wpdb->prefix}fct_orders o ON o.id = oi.order_id WHERE oi.object_id IN ({$ids})
 			 UNION SELECT DISTINCT customer_id FROM {$wpdb->prefix}fct_subscriptions WHERE variation_id IN ({$ids})"
 		);
-		$known = $wpdb->get_col( 'SELECT DISTINCT customer_id FROM ' . self::table() . ' WHERE customer_id > 0' );
+		if ( ! is_array( $customers ) || $wpdb->last_error ) {
+			return 0;
+		}
+		$wpdb->last_error = '';
+		$known            = $wpdb->get_col( 'SELECT DISTINCT customer_id FROM ' . self::table() . ' WHERE customer_id > 0' );
+		if ( ! is_array( $known ) || $wpdb->last_error ) {
+			return 0;
+		}
 		$all   = array_unique( array_map( 'intval', array_merge( $customers, $known ) ) );
 		foreach ( $all as $id ) {
 			self::reconcile_customer( $id );
@@ -518,5 +589,103 @@ final class Members {
 			$out[ (string) $r->tier ] = (int) $r->n;
 		}
 		return $out;
+	}
+
+	/* ---------- privacy ---------- */
+
+	/** Export and erase hooks. Safe to call when the paid module itself is not booted. */
+	public static function register_privacy(): void {
+		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'register_exporter' ) );
+		add_filter( 'wp_privacy_personal_data_erasers', array( __CLASS__, 'register_eraser' ) );
+	}
+
+	public static function register_exporter( array $exporters ): array {
+		$exporters['mailerhive-members'] = array(
+			'exporter_friendly_name' => __( 'MailerHive paid membership', 'mailerhive' ),
+			'callback'               => array( __CLASS__, 'export_personal_data' ),
+		);
+		return $exporters;
+	}
+
+	public static function register_eraser( array $erasers ): array {
+		$erasers['mailerhive-members'] = array(
+			'eraser_friendly_name' => __( 'MailerHive paid membership', 'mailerhive' ),
+			'callback'             => array( __CLASS__, 'erase_personal_data' ),
+		);
+		return $erasers;
+	}
+
+	/**
+	 * @return array{data:array<int,array<string,mixed>>,done:bool}
+	 */
+	public static function export_personal_data( string $email, int $page = 1 ): array {
+		unset( $page );
+		$rows = self::rows_for_email( $email );
+		$data = array();
+		foreach ( $rows as $row ) {
+			$tier = (string) $row->tier;
+			if ( class_exists( Plans::class ) ) {
+				$named = Plans::tier( $tier );
+				if ( $named ) {
+					$tier = (string) $named['name'];
+				}
+			}
+			$data[] = array(
+				'group_id'    => 'mailerhive-members',
+				'group_label' => __( 'MailerHive paid membership', 'mailerhive' ),
+				'item_id'     => 'member-' . (int) $row->id,
+				'data'        => array(
+					array( 'name' => __( 'Email', 'mailerhive' ), 'value' => (string) $row->email ),
+					array( 'name' => __( 'Tier', 'mailerhive' ), 'value' => $tier ),
+					array( 'name' => __( 'Status', 'mailerhive' ), 'value' => (string) $row->status ),
+					array( 'name' => __( 'Mode', 'mailerhive' ), 'value' => (string) $row->mode ),
+					array( 'name' => __( 'Starts', 'mailerhive' ), 'value' => (string) $row->starts_at ),
+					array( 'name' => __( 'Expires', 'mailerhive' ), 'value' => null === $row->expires_at ? '' : (string) $row->expires_at ),
+				),
+			);
+		}
+		return array(
+			'data' => $data,
+			'done' => true,
+		);
+	}
+
+	/**
+	 * @return array{items_removed:bool,items_retained:bool,messages:array<int,string>,done:bool}
+	 */
+	public static function erase_personal_data( string $email, int $page = 1 ): array {
+		unset( $page );
+		global $wpdb;
+		$email   = strtolower( sanitize_email( $email ) );
+		$removed = false;
+		if ( is_email( $email ) && self::table_ready() ) {
+			$deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::table() . ' WHERE email = %s', $email ) );
+			$removed = false !== $deleted && $deleted > 0;
+			if ( class_exists( Plans::class ) && class_exists( MP_Store::class ) && MP_Store::available() ) {
+				self::sync_contact( $email );
+			}
+		}
+		return array(
+			'items_removed'  => $removed,
+			'items_retained' => false,
+			'messages'       => array(),
+			'done'           => true,
+		);
+	}
+
+	/** @return array<int,object> */
+	private static function rows_for_email( string $email ): array {
+		global $wpdb;
+		$email = strtolower( sanitize_email( $email ) );
+		if ( ! is_email( $email ) || ! self::table_ready() ) {
+			return array();
+		}
+		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE email = %s', $email ) ) ?: array();
+	}
+
+	private static function table_ready(): bool {
+		global $wpdb;
+		$table = self::table();
+		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
 	}
 }

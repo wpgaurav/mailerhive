@@ -4,7 +4,7 @@ Tags: newsletter, mailerpress, email archive, substack import, beehiiv
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.3
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
     wp mailerhive paid members|reconcile|sweep|grant|revoke|access [<args>]
 
 == Changelog ==
+
+= 1.4.4 =
+* A failed FluentCart lookup no longer wipes paid access. Subscriptions without a next bill or an end date expire instead of staying open forever.
+* Buying a paid plan no longer resubscribes a pending, bounced, complained, or suppressed contact, and it keeps the contact's existing opt-in record.
+* A sent campaign that went only to paid lists is mirrored onto a paywalled issue as soon as someone opens the MailerPress web view. Until that issue is published, the web view is refused.
+* Paid previews, excerpts, search results, and the REST API are cut from the raw issue before shortcodes in the paid part can run.
+* Imported images are fetched only from public http(s) hosts, and imported links keep only http(s), mailto, tel, fragments, and site-relative paths.
+* The consent policy attaches even when MailerPress registers its form action late. FluentCart checkout counts as newsletter consent only when it posts the disclosure saved in settings. Abandoned checkouts are unpaid orders still on hold, pending, or processing.
+* Reading links are single-use under concurrent requests. Sign-out is a posted form. The archive pages 24 issues at a time. Disconnecting a license removes the local key when the store cannot be reached. Uninstall clears the license and the update cache. Personal-data export and erase cover paid membership rows.
 
 = 1.4.3 =
 * The FluentCart products MailerHive creates for paid tiers stay out of the storefront by default: the FluentCart shop and shop search, related products, product archives, site search, custom shop grids that query products, and sitemaps. Their product pages are marked noindex; checkout links and the paywall plans keep working. Paid tab → Shop turns them back on.

@@ -24,6 +24,12 @@ final class Plans {
 
 	private static $variations = null;
 
+	/** True once variations() has loaded the full catalog (or confirmed it cannot). */
+	private static $catalog_complete = false;
+
+	/** True when the variations query failed, so an empty result is not a real catalog. */
+	private static $catalog_error = false;
+
 	/**
 	 * Tiers in rank order (index 0 is the lowest).
 	 *
@@ -78,25 +84,44 @@ final class Plans {
 	 * @return array<int,array{tier:string,mode:string,duration:int,unit:string}>
 	 */
 	public static function by_variation(): array {
-		$out = array();
+		$wanted = array();
 		foreach ( self::tiers() as $tier ) {
 			foreach ( (array) $tier['plans'] as $plan ) {
 				$vid = (int) ( $plan['variation_id'] ?? 0 );
-				$var = $vid ? self::variation( $vid ) : null;
-				if ( ! $var || isset( $out[ $vid ] ) ) {
-					continue;
+				if ( $vid && ! isset( $wanted[ $vid ] ) ) {
+					$wanted[ $vid ] = $plan;
+					$wanted[ $vid ]['tier'] = (string) $tier['key'];
 				}
-				$duration = max( 0, (int) ( $plan['duration'] ?? 0 ) );
-				$mode     = 'subscription' === $var['payment_type'] ? 'subscription' : ( $duration ? 'fixed' : 'lifetime' );
-				$out[ $vid ] = array(
-					'tier'     => (string) $tier['key'],
-					'mode'     => $mode,
-					'duration' => $duration,
-					'unit'     => in_array( $plan['unit'] ?? '', self::UNITS, true ) ? $plan['unit'] : 'month',
-				);
 			}
 		}
+		if ( ! $wanted ) {
+			return array();
+		}
+		$rows = self::query_variations( array_keys( $wanted ) );
+		if ( null === $rows ) {
+			self::$catalog_error = true;
+			return array();
+		}
+		$out = array();
+		foreach ( $rows as $var ) {
+			$plan = $wanted[ $var['id'] ] ?? null;
+			if ( ! $plan || isset( $out[ $var['id'] ] ) ) {
+				continue;
+			}
+			$duration         = max( 0, (int) ( $plan['duration'] ?? 0 ) );
+			$out[ $var['id'] ] = array(
+				'tier'     => (string) $plan['tier'],
+				'mode'     => 'subscription' === $var['payment_type'] ? 'subscription' : ( $duration ? 'fixed' : 'lifetime' ),
+				'duration' => $duration,
+				'unit'     => in_array( $plan['unit'] ?? '', self::UNITS, true ) ? $plan['unit'] : 'month',
+			);
+		}
 		return $out;
+	}
+
+	/** The variations query failed in this request. An empty plan map is not trustworthy. */
+	public static function catalog_failed(): bool {
+		return self::$catalog_error;
 	}
 
 	/** End of a fixed term that starts at $start (UTC "Y-m-d H:i:s"). */
@@ -116,24 +141,56 @@ final class Plans {
 	 * @return array<int,array{id:int,product_id:int,product:string,title:string,price:int,payment_type:string,interval:string,status:string}>
 	 */
 	public static function variations(): array {
+		if ( self::$catalog_complete && is_array( self::$variations ) ) {
+			return self::$variations;
+		}
+		$rows = self::query_variations( null );
+		if ( null === $rows ) {
+			self::$catalog_error = true;
+			return array();
+		}
+		self::$variations       = array();
+		self::$catalog_complete = true;
+		foreach ( $rows as $var ) {
+			self::$variations[ $var['id'] ] = $var;
+		}
+		return self::$variations;
+	}
+
+	/**
+	 * Variation rows for the plan picker. Null means the query failed (not an empty catalog).
+	 *
+	 * @param array<int>|null $ids Limit to these variation ids. Null loads the catalog.
+	 * @return array<int,array{id:int,product_id:int,product:string,title:string,price:int,payment_type:string,interval:string,status:string}>|null
+	 */
+	private static function query_variations( ?array $ids ): ?array {
 		global $wpdb;
-		if ( null !== self::$variations ) {
-			return self::$variations;
-		}
-		self::$variations = array();
 		if ( ! self::fluentcart_ready() ) {
-			return self::$variations;
+			return array();
 		}
-		$rows = $wpdb->get_results(
+		$where = "p.post_status NOT IN ('trash','auto-draft')";
+		if ( null !== $ids ) {
+			$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
+			if ( ! $ids ) {
+				return array();
+			}
+			$where .= ' AND v.id IN (' . implode( ',', $ids ) . ')';
+		}
+		$wpdb->last_error = '';
+		$rows             = $wpdb->get_results(
 			"SELECT v.id, v.post_id, v.variation_title, v.item_price, v.payment_type, v.other_info, p.post_title, p.post_status
 			 FROM {$wpdb->prefix}fct_product_variations v
 			 INNER JOIN {$wpdb->posts} p ON p.ID = v.post_id
-			 WHERE p.post_status NOT IN ('trash','auto-draft')
+			 WHERE {$where}
 			 ORDER BY p.post_title ASC, v.serial_index ASC, v.id ASC"
-		) ?: array();
+		);
+		if ( ! is_array( $rows ) || $wpdb->last_error ) {
+			return null;
+		}
+		$out = array();
 		foreach ( $rows as $r ) {
-			$info                          = json_decode( (string) $r->other_info, true );
-			self::$variations[ (int) $r->id ] = array(
+			$info   = json_decode( (string) $r->other_info, true );
+			$out[] = array(
 				'id'           => (int) $r->id,
 				'product_id'   => (int) $r->post_id,
 				'product'      => (string) $r->post_title,
@@ -144,11 +201,32 @@ final class Plans {
 				'status'       => (string) $r->post_status,
 			);
 		}
-		return self::$variations;
+		return $out;
 	}
 
 	public static function variation( int $id ): ?array {
-		return self::variations()[ $id ] ?? null;
+		if ( self::$catalog_complete ) {
+			return self::variations()[ $id ] ?? null;
+		}
+		if ( is_array( self::$variations ) && isset( self::$variations[ $id ] ) ) {
+			return self::$variations[ $id ];
+		}
+		if ( self::$catalog_error ) {
+			return null;
+		}
+		$rows = self::query_variations( array( $id ) );
+		if ( null === $rows ) {
+			self::$catalog_error = true;
+			return null;
+		}
+		if ( ! isset( $rows[0] ) ) {
+			return null;
+		}
+		if ( ! is_array( self::$variations ) ) {
+			self::$variations = array();
+		}
+		self::$variations[ $id ] = $rows[0];
+		return $rows[0];
 	}
 
 	public static function checkout_url( int $variation_id ): string {

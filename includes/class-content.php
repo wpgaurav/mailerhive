@@ -151,7 +151,7 @@ final class Content {
 
 		self::strip_attributes( $doc );
 		self::drop_empty( $doc );
-		return self::inner( $doc );
+		return self::sanitize_hrefs( self::inner( $doc ) );
 	}
 
 	/**
@@ -208,7 +208,7 @@ final class Content {
 		self::drop_empty( $doc );
 		$out = self::inner( $doc );
 		$out = preg_replace( '/\{\{[a-z_]+\}\}|%[A-Z_]+%/', '', $out );
-		return str_replace( "\xE2\x80\x8B", '', $out );
+		return self::sanitize_hrefs( str_replace( "\xE2\x80\x8B", '', $out ) );
 	}
 
 	/**
@@ -232,6 +232,9 @@ final class Content {
 					if ( $host === $h || str_ends_with( $host, '.' . $h ) ) {
 						return $m[0];
 					}
+				}
+				if ( ! self::public_http_url( $src ) ) {
+					return $m[0];
 				}
 				if ( ! isset( $done[ $src ] ) ) {
 					$tmp = download_url( $src, 60 );
@@ -259,5 +262,96 @@ final class Content {
 			set_post_thumbnail( $post_id, $first );
 		}
 		return $html;
+	}
+
+	/** http(s) only, and only when every resolved address is a public IP. */
+	public static function public_http_url( string $url ): bool {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || isset( $parts['user'] ) || isset( $parts['pass'] ) ) {
+			return false;
+		}
+		$scheme = strtolower( (string) ( $parts['scheme'] ?? '' ) );
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+		$host = strtolower( trim( (string) ( $parts['host'] ?? '' ), '[]' ) );
+		if ( '' === $host || self::host_is_blocked( $host ) ) {
+			return false;
+		}
+		if ( filter_var( $host, FILTER_VALIDATE_IP ) ) {
+			return self::public_ip( $host );
+		}
+		$ips = self::resolved_ips( $host );
+		if ( ! $ips ) {
+			return false;
+		}
+		foreach ( $ips as $ip ) {
+			if ( ! self::public_ip( $ip ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static function host_is_blocked( string $host ): bool {
+		$host = rtrim( $host, '.' );
+		if ( in_array( $host, array( 'localhost', 'metadata', 'metadata.google.internal' ), true ) ) {
+			return true;
+		}
+		return str_ends_with( $host, '.local' ) || str_ends_with( $host, '.internal' ) || str_ends_with( $host, '.localhost' );
+	}
+
+	private static function public_ip( string $ip ): bool {
+		return (bool) filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
+	}
+
+	/** @return array<int,string> */
+	private static function resolved_ips( string $host ): array {
+		$ips = array();
+		$v4  = gethostbynamel( $host );
+		if ( is_array( $v4 ) ) {
+			$ips = array_merge( $ips, $v4 );
+		}
+		if ( function_exists( 'dns_get_record' ) ) {
+			$aaaa = @dns_get_record( $host, DNS_AAAA ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- a missing resolver should fail the fetch, not the import.
+			if ( is_array( $aaaa ) ) {
+				foreach ( $aaaa as $row ) {
+					if ( ! empty( $row['ipv6'] ) ) {
+						$ips[] = (string) $row['ipv6'];
+					}
+				}
+			}
+		}
+		return $ips;
+	}
+
+	/** Keep fragment, site-relative, mailto, tel, and http(s) links. Strip every other href. */
+	public static function sanitize_hrefs( string $html ): string {
+		if ( '' === $html || ! class_exists( '\WP_HTML_Tag_Processor' ) ) {
+			return $html;
+		}
+		$tags = new \WP_HTML_Tag_Processor( $html );
+		while ( $tags->next_tag( array( 'tag_name' => 'A' ) ) ) {
+			$href = $tags->get_attribute( 'href' );
+			if ( ! is_string( $href ) || ! self::href_allowed( $href ) ) {
+				$tags->remove_attribute( 'href' );
+			}
+		}
+		return $tags->get_updated_html();
+	}
+
+	private static function href_allowed( string $href ): bool {
+		$href = trim( $href );
+		if ( '' === $href || preg_match( '/[\x00-\x20]/', $href ) ) {
+			return false;
+		}
+		if ( str_starts_with( $href, '#' ) ) {
+			return true;
+		}
+		if ( str_starts_with( $href, '/' ) && ! str_starts_with( $href, '//' ) ) {
+			return true;
+		}
+		$scheme = strtolower( (string) wp_parse_url( $href, PHP_URL_SCHEME ) );
+		return in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true );
 	}
 }

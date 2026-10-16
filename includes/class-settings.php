@@ -109,6 +109,7 @@ final class Settings {
 			'consent_version'         => 'v1',
 			'fc_category_tags'        => '',
 			'fc_customer_list'        => 'Customers',
+			'fc_consent_disclosure'   => '',
 			// Paid subscriptions (module off for new installs).
 			'module_paid'             => false,
 			'paid_tiers'              => array(),
@@ -359,7 +360,7 @@ final class Settings {
 				$out[ $k ] = sanitize_text_field( $in[ $k ] );
 			}
 		}
-		foreach ( array( 'tagline', 'archive_intro', 'subscribe_facts', 'header_links', 'footer_links', 'fc_category_tags' ) as $k ) {
+		foreach ( array( 'tagline', 'archive_intro', 'subscribe_facts', 'header_links', 'footer_links', 'fc_category_tags', 'fc_consent_disclosure' ) as $k ) {
 			if ( isset( $in[ $k ] ) ) {
 				$out[ $k ] = sanitize_textarea_field( $in[ $k ] );
 			}
@@ -766,8 +767,9 @@ final class Settings {
 		self::heading( __( 'Paid subscriptions', 'mailerhive' ) );
 		self::check( $s, 'module_paid', __( 'Paid tiers', 'mailerhive' ), __( 'Sell newsletter subscriptions through FluentCart', 'mailerhive' ), __( 'Recurring plans follow the FluentCart subscription; one-time plans give a fixed term or lifetime access. Paid issues show a preview and the plans, and each tier gets its own MailerPress list. Set tiers on the Paid tab.', 'mailerhive' ) );
 		self::heading( __( 'FluentCart', 'mailerhive' ) );
-		self::check( $s, 'module_fluentcart_lifecycle', __( 'Lifecycle tags', 'mailerhive' ), __( 'Tag MailerPress contacts from FluentCart purchases, refunds and abandoned checkouts', 'mailerhive' ), __( 'A paid order can create a contact on the customer list below. Existing contacts are never re-subscribed.', 'mailerhive' ) );
-		self::text( $s, 'fc_customer_list', __( 'Customer list', 'mailerhive' ), __( 'MailerPress list name for paying customers.', 'mailerhive' ) );
+		self::check( $s, 'module_fluentcart_lifecycle', __( 'Lifecycle tags', 'mailerhive' ), __( 'Tag MailerPress contacts from FluentCart purchases, refunds and abandoned checkouts', 'mailerhive' ), __( 'A paid order creates a contact and applies purchase tags. The contact is subscribed and added to the customer list only when checkout posted the disclosure below. Existing contacts are never re-subscribed.', 'mailerhive' ) );
+		self::text( $s, 'fc_customer_list', __( 'Customer list', 'mailerhive' ), __( 'MailerPress list name for paying customers who agreed to the disclosure.', 'mailerhive' ) );
+		self::area( $s, 'fc_consent_disclosure', __( 'Checkout disclosure', 'mailerhive' ), __( 'Exact text the checkout must post as mailerpress_disclosure (or mailerpress_subscribe). Leave this empty and a purchase never counts as newsletter consent.', 'mailerhive' ), 4 );
 		self::area( $s, 'fc_category_tags', __( 'Category tags', 'mailerhive' ), __( 'One per line as <code>product-category-slug | Tag name</code>. Buyers of products in that category get the tag.', 'mailerhive' ), 4, true );
 		self::heading( __( 'MailerPress editor', 'mailerhive' ) );
 		self::check( $s, 'module_rich_paste', __( 'Rich paste', 'mailerhive' ), __( 'Paste Google Docs and block-editor content into MailerPress as native email blocks', 'mailerhive' ) );
