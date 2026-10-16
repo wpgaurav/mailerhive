@@ -30,6 +30,7 @@ final class Access {
 	const HINT_COOKIE = 'mh_member';
 	const LINK_ARG    = 'mh_access';
 	const LINK_TTL    = HOUR_IN_SECONDS;
+	const USED_PREFIX = 'mailerhive_used_';
 
 	private static $rank = null;
 
@@ -39,6 +40,7 @@ final class Access {
 	public static function boot(): void {
 		add_action( 'init', array( __CLASS__, 'register_meta' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'consume_link' ), 1 );
+		add_action( Members::SWEEP_HOOK, array( __CLASS__, 'purge_spent_links' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'no_store_for_members' ), 20 );
 		add_filter( 'mailerhive_issue_body', array( __CLASS__, 'issue_body' ), 10, 2 );
 		add_filter( 'mailerhive_issue_badge', array( __CLASS__, 'badge' ), 10, 2 );
@@ -209,9 +211,10 @@ final class Access {
 	private static function ip(): string {
 		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$via    = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
-		// Trust the first forwarded hop only when the immediate peer is a private proxy.
+		// Behind a private proxy, use the hop that proxy appended. Earlier hops come from the client and can be forged.
 		if ( $remote && $via && ! filter_var( $remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
-			$hop = trim( explode( ',', $via )[0] );
+			$hops = explode( ',', $via );
+			$hop  = trim( (string) end( $hops ) );
 			if ( filter_var( $hop, FILTER_VALIDATE_IP ) ) {
 				return $hop;
 			}
@@ -227,12 +230,26 @@ final class Access {
 		nocache_headers();
 		$token = sanitize_text_field( wp_unslash( $_GET[ self::LINK_ARG ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$email = self::verify( $token, 'link' );
-		// add_option is atomic, so two requests cannot both spend the same link.
-		if ( $email && add_option( 'mailerhive_used_' . md5( $token ), time(), '', false ) ) {
+		if ( $email && self::spend_link( $token ) ) {
 			self::set_cookies( $email );
 		}
 		wp_safe_redirect( remove_query_arg( array( self::LINK_ARG, 'mh_link' ) ) );
 		exit;
+	}
+
+	/**
+	 * Mark a reading link spent. INSERT IGNORE succeeds for exactly one request;
+	 * add_option() would not, because it upserts.
+	 */
+	private static function spend_link( string $token ): bool {
+		global $wpdb;
+		return 1 === (int) $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')", self::USED_PREFIX . md5( $token ), (string) time() ) );
+	}
+
+	/** A spent marker only matters while its link could still verify. */
+	public static function purge_spent_links(): void {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d", $wpdb->esc_like( self::USED_PREFIX ) . '%', time() - 2 * self::LINK_TTL ) );
 	}
 
 	public static function sign_out(): void {

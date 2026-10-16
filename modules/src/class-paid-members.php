@@ -67,6 +67,7 @@ final class Members {
 			add_action( $hook, array( __CLASS__, 'queue_from_event' ), 40, 1 );
 		}
 		add_action( 'shutdown', array( __CLASS__, 'flush_queue' ), 5 );
+		add_action( self::SWEEP_HOOK, array( __CLASS__, 'sweep' ) );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
 		self::register_privacy();
 	}

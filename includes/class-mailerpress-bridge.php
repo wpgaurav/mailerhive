@@ -103,15 +103,21 @@ final class MailerPress_Bridge {
 	}
 
 	private static function mirror_paid_now( int $campaign_id ): int {
-		$lock = 'mailerhive_mirror_lock_' . $campaign_id;
-		if ( ! add_option( $lock, time(), '', false ) ) {
-			$existing = self::issue_for_campaign( $campaign_id );
-			return ( $existing && 'publish' === $existing->post_status ) ? (int) $existing->ID : 0;
+		global $wpdb;
+		$lock  = 'mailerhive_mirror_lock_' . $campaign_id;
+		$claim = static fn(): bool => 1 === (int) $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')", $lock, (string) time() ) );
+		if ( ! $claim() ) {
+			// A request that died mid-mirror leaves its lock behind. Take it over after ten minutes.
+			$since = (int) $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $lock ) );
+			if ( ! $since || $since > time() - 10 * MINUTE_IN_SECONDS || ! $wpdb->delete( $wpdb->options, array( 'option_name' => $lock, 'option_value' => (string) $since ) ) || ! $claim() ) {
+				$existing = self::issue_for_campaign( $campaign_id );
+				return ( $existing && 'publish' === $existing->post_status ) ? (int) $existing->ID : 0;
+			}
 		}
 		try {
 			return self::mirror( $campaign_id, 'publish' );
 		} finally {
-			delete_option( $lock );
+			$wpdb->delete( $wpdb->options, array( 'option_name' => $lock ) );
 		}
 	}
 
