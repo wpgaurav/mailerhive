@@ -44,19 +44,8 @@ final class FluentCart_Lifecycle {
 	}
 
 	public static function record_checkout_consent( $data ): void {
-		$disclosure = (string) \MailerHive\Settings::get( 'fc_consent_disclosure' );
+		list( $disclosure, $field ) = self::posted_consent();
 		if ( '' === $disclosure ) {
-			return;
-		}
-		// FluentCart validates the checkout request before this action runs.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$posted = '';
-		if ( isset( $_POST['mailerpress_disclosure'] ) ) {
-			$posted = wp_unslash( $_POST['mailerpress_disclosure'] );
-		} elseif ( isset( $_POST['mailerpress_subscribe'] ) ) {
-			$posted = wp_unslash( $_POST['mailerpress_subscribe'] );
-		}
-		if ( ! is_string( $posted ) || $posted !== $disclosure ) {
 			return;
 		}
 
@@ -69,6 +58,7 @@ final class FluentCart_Lifecycle {
 			array(
 				'recorded_at' => current_time( 'mysql', true ),
 				'disclosure'  => $disclosure,
+				'field'       => $field,
 			),
 			7 * DAY_IN_SECONDS
 		);
@@ -97,6 +87,8 @@ final class FluentCart_Lifecycle {
 				'source'              => 'fluentcart_checkout',
 				'consent_recorded_at' => $recorded_at,
 				'consent_version'     => self::CONSENT_VERSION,
+				'consent_field'       => $field,
+				'consent_disclosure'  => $disclosure,
 			)
 		);
 		$wpdb->update(
@@ -297,7 +289,55 @@ final class FluentCart_Lifecycle {
 		);
 	}
 
-	/** Checkout posted the saved disclosure, or this email already has that consent on file. */
+	/**
+	 * The disclosure this checkout agreed to and the field that carried it, or two empty strings.
+	 *
+	 * A custom checkout field posts the exact text saved in settings. MailerPress Pro's own
+	 * FluentCart checkbox posts "1", so when that checkbox is switched on and ticked, the label
+	 * MailerPress Pro showed next to it is the disclosure.
+	 *
+	 * @return array{0:string,1:string}
+	 */
+	private static function posted_consent(): array {
+		// FluentCart validates the checkout request before this action runs.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$saved = (string) \MailerHive\Settings::get( 'fc_consent_disclosure' );
+		if ( '' !== $saved ) {
+			$posted = '';
+			if ( isset( $_POST['mailerpress_disclosure'] ) ) {
+				$posted = wp_unslash( $_POST['mailerpress_disclosure'] );
+			} elseif ( isset( $_POST['mailerpress_subscribe'] ) ) {
+				$posted = wp_unslash( $_POST['mailerpress_subscribe'] );
+			}
+			if ( is_string( $posted ) && $posted === $saved ) {
+				return array( $saved, 'checkout_disclosure' );
+			}
+		}
+		$ticked = ! empty( $_POST['mailerpress_subscribe'] );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		$label = $ticked ? self::mailerpress_pro_checkbox_label() : '';
+		return '' === $label ? array( '', '' ) : array( $label, 'mailerpress_pro_checkbox' );
+	}
+
+	/** Label of MailerPress Pro's FluentCart checkout checkbox, or '' when that checkbox is not shown. */
+	private static function mailerpress_pro_checkbox_label(): string {
+		if ( ! class_exists( '\MailerPressPro\Actions\ThirdParty\FluentCart\CheckoutField' ) ) {
+			return '';
+		}
+		// Read the option the way MailerPress Pro does: an array, or JSON in a string.
+		$settings = get_option( 'fluentcart_mailerpress_settings', '' );
+		if ( is_string( $settings ) ) {
+			$settings = '' === $settings ? array() : json_decode( $settings, true );
+		}
+		if ( ! is_array( $settings ) || empty( $settings['enable_checkout_subscribe'] ) ) {
+			return '';
+		}
+		// The same fallback MailerPress Pro renders, so the stored text is what the buyer saw.
+		$label = $settings['subscribe_label'] ?? __( 'I would like to receive exclusive emails with discounts and product information.', 'mailerpress-pro' ); // phpcs:ignore WordPress.WP.I18n.TextDomainMismatch -- MailerPress Pro's own default label, translated as MailerPress Pro shows it.
+		return trim( (string) $label );
+	}
+
+	/** Checkout gave consent (see posted_consent()), or this email already has that consent on file. */
 	private static function checkout_consent_granted( string $email ): bool {
 		$stored = get_transient( 'mh_fc_consent_' . md5( strtolower( $email ) ) );
 		if ( is_array( $stored ) && ! empty( $stored['disclosure'] ) ) {

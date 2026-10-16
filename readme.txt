@@ -61,6 +61,9 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
 
 == Changelog ==
 
+= 1.4.5 =
+* A ticked MailerPress Pro checkout checkbox now counts as newsletter consent for FluentCart purchases. Its label is saved on the contact as the disclosure the buyer agreed to, so sites using that checkbox need nothing in Checkout disclosure. A custom checkout field still has to post the exact saved text.
+
 = 1.4.4 =
 * A failed FluentCart lookup no longer wipes paid access. Subscriptions without a next bill or an end date expire instead of staying open forever.
 * Buying a paid plan no longer resubscribes a pending, bounced, complained, or suppressed contact, and it keeps the contact's existing opt-in record.
