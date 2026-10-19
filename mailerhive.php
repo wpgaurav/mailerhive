@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       MailerHive
  * Description:       Beehiiv- and Ghost-style newsletter publishing for MailerPress: a public web archive of issues, paid tiers sold through FluentCart, a theme-free reading page with light/dark mode, one-click MailerPress drafts, Substack import, and optional consent, FluentCart and editor modules.
- * Version:           1.4.5
+ * Version:           1.4.6
  * Requires at least: 6.6
  * Requires PHP:      8.1
  * Author:            Gaurav Tiwari
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MAILERHIVE_VERSION', '1.4.5' );
+define( 'MAILERHIVE_VERSION', '1.4.6' );
 define( 'MAILERHIVE_FILE', __FILE__ );
 define( 'MAILERHIVE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILERHIVE_URL', plugin_dir_url( __FILE__ ) );
