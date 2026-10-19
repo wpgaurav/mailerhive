@@ -18,7 +18,7 @@ final class Settings {
 
 	/** Checkbox fields per tab, so a partial (one-tab) save can record "off". */
 	const CHECKBOXES = array(
-		'issues'      => array( 'show_subscribe', 'show_pager', 'nofollow', 'external_new_tab' ),
+		'issues'      => array( 'show_subscribe', 'show_pager', 'show_share', 'nofollow', 'external_new_tab' ),
 		'design'      => array( 'detach_theme', 'shell_mailerpress_pages', 'show_theme_toggle', 'landing_shell' ),
 		'mailerpress' => array( 'auto_draft', 'mirror_enabled', 'redirect_web_view' ),
 		'analytics'   => array( 'rybbit_enabled' ),
@@ -65,6 +65,7 @@ final class Settings {
 			'subscribe_facts'         => "Free\nNo fixed schedule\nUnsubscribe anytime",
 			'show_subscribe'          => true,
 			'show_pager'              => true,
+			'show_share'              => true,
 			'nofollow'                => true,
 			'external_new_tab'        => false,
 			'internal_hosts'          => array(),
@@ -673,6 +674,7 @@ final class Settings {
 		self::text( $s, 'subscribe_heading', __( 'Subscribe heading', 'mailerhive' ), '', 'large-text' );
 		self::area( $s, 'subscribe_facts', __( 'Subscribe facts', 'mailerhive' ), __( 'One short fact per line, shown with dot bullets under the form.', 'mailerhive' ), 3 );
 		self::check( $s, 'show_pager', __( 'Issue navigation', 'mailerhive' ), __( 'Show previous and next issue links', 'mailerhive' ) );
+		self::check( $s, 'show_share', __( 'Share links', 'mailerhive' ), __( 'Show share links under every issue', 'mailerhive' ), __( 'X, LinkedIn, Facebook, Bluesky, Threads, WhatsApp, email and copy link. Plain links, no third-party scripts.', 'mailerhive' ) );
 		self::check( $s, 'nofollow', __( 'External links', 'mailerhive' ), __( 'Add rel="nofollow noopener" to every external link in issues', 'mailerhive' ) );
 		self::check( $s, 'external_new_tab', __( 'Open externally', 'mailerhive' ), __( 'Open external links in a new tab', 'mailerhive' ) );
 		self::area( $s, 'internal_hosts', __( 'Extra internal hosts', 'mailerhive' ), __( 'Hosts treated as internal (no nofollow). The site and its subdomains are always internal. One per line.', 'mailerhive' ), 3 );

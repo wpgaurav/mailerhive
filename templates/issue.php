@@ -48,6 +48,7 @@ $mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / 230 ) );
 			}
 			?>
 		</div>
+		<?php Shell::share_bar( $mailerhive_post ); ?>
 	</article>
 
 	<?php if ( Settings::on( 'show_pager' ) && ( $mailerhive_neighbours['older'] || $mailerhive_neighbours['newer'] ) ) : ?>

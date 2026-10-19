@@ -61,6 +61,9 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
 
 == Changelog ==
 
+= 1.4.6 =
+* Single issues end with share links: X, LinkedIn, Facebook, Bluesky, Threads, WhatsApp, email, and copy link. They are plain links with no third-party scripts. Issues → Share links turns them off, and the `mailerhive_share_networks` filter adds, removes, or reorders networks.
+
 = 1.4.5 =
 * A ticked MailerPress Pro checkout checkbox now counts as newsletter consent for FluentCart purchases. Its label is saved on the contact as the disclosure the buyer agreed to, so sites using that checkbox need nothing in Checkout disclosure. A custom checkout field still has to post the exact saved text.
 

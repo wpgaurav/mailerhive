@@ -379,6 +379,53 @@ final class Shell {
 		<?php
 	}
 
+	/**
+	 * Share links for one issue: plain intent URLs (no third-party scripts) plus copy-link.
+	 */
+	public static function share_bar( \WP_Post $post ): void {
+		if ( ! Settings::on( 'show_share' ) ) {
+			return;
+		}
+		$url   = (string) get_permalink( $post );
+		$title = wp_strip_all_tags( html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ) );
+		$both  = $title . ' ' . $url;
+		$nets  = array(
+			'x'        => array( __( 'X', 'mailerhive' ), 'brand-x', 'https://x.com/intent/post?' . http_build_query( array( 'text' => $title, 'url' => $url ), '', '&', PHP_QUERY_RFC3986 ) ),
+			'linkedin' => array( __( 'LinkedIn', 'mailerhive' ), 'brand-linkedin', 'https://www.linkedin.com/sharing/share-offsite/?url=' . rawurlencode( $url ) ),
+			'facebook' => array( __( 'Facebook', 'mailerhive' ), 'brand-facebook', 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode( $url ) ),
+			'bluesky'  => array( __( 'Bluesky', 'mailerhive' ), 'brand-bluesky', 'https://bsky.app/intent/compose?text=' . rawurlencode( $both ) ),
+			'threads'  => array( __( 'Threads', 'mailerhive' ), 'brand-threads', 'https://www.threads.net/intent/post?text=' . rawurlencode( $both ) ),
+			'whatsapp' => array( __( 'WhatsApp', 'mailerhive' ), 'brand-whatsapp', 'https://wa.me/?text=' . rawurlencode( $both ) ),
+			'email'    => array( __( 'email', 'mailerhive' ), 'mail', 'mailto:?' . http_build_query( array( 'subject' => $title, 'body' => $url ), '', '&', PHP_QUERY_RFC3986 ) ),
+		);
+		$nets  = (array) apply_filters( 'mailerhive_share_networks', $nets, $post );
+		if ( ! $nets ) {
+			return;
+		}
+		?>
+		<footer class="mh-share">
+			<p class="mh-share__label" id="mh-share-label"><?php echo Icons::get( 'share' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Share this issue', 'mailerhive' ); ?></p>
+			<ul class="mh-share__list" aria-labelledby="mh-share-label">
+				<?php
+				foreach ( $nets as $key => $net ) :
+					list( $name, $icon, $href ) = array_pad( array_values( (array) $net ), 3, '' );
+					/* translators: %s: network name, e.g. LinkedIn */
+					$label = sprintf( __( 'Share on %s', 'mailerhive' ), $name );
+					if ( 'email' === $key ) {
+						$label = __( 'Share by email', 'mailerhive' );
+					}
+					$mail = 0 === strpos( (string) $href, 'mailto:' );
+					?>
+					<li><a class="mh-share__btn mh-share__btn--<?php echo esc_attr( sanitize_key( (string) $key ) ); ?>" href="<?php echo esc_url( (string) $href, array( 'http', 'https', 'mailto' ) ); ?>"<?php echo $mail ? '' : ' target="_blank" rel="noopener noreferrer nofollow"'; ?> aria-label="<?php echo esc_attr( $label ); ?>" title="<?php echo esc_attr( $label ); ?>"><?php echo Icons::get( (string) $icon ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a></li>
+				<?php endforeach; ?>
+				<li><button type="button" class="mh-share__btn mh-share__copy" data-url="<?php echo esc_url( $url ); ?>" data-done="<?php esc_attr_e( 'Link copied', 'mailerhive' ); ?>" aria-label="<?php esc_attr_e( 'Copy link', 'mailerhive' ); ?>" title="<?php esc_attr_e( 'Copy link', 'mailerhive' ); ?>"><?php echo Icons::get( 'link' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button></li>
+			</ul>
+			<span class="mh-sr" role="status" aria-live="polite"></span>
+		</footer>
+		<?php
+		wp_print_inline_script_tag( "!function(){var b=document.querySelector('.mh-share__copy');if(!b||!navigator.clipboard){b&&b.parentNode.remove();return}var s=document.querySelector('.mh-share [role=status]'),l=b.getAttribute('aria-label'),t;b.addEventListener('click',function(){navigator.clipboard.writeText(b.dataset.url).then(function(){b.classList.add('is-copied');b.setAttribute('aria-label',b.dataset.done);b.title=b.dataset.done;s.textContent=b.dataset.done;clearTimeout(t);t=setTimeout(function(){b.classList.remove('is-copied');b.setAttribute('aria-label',l);b.title=l;s.textContent=''},2000)})})}();", array( 'id' => 'mailerhive-share' ) );
+	}
+
 	public static function subscribe_box( string $id = 'mh-subscribe' ): void {
 		if ( ! Settings::on( 'show_subscribe' ) ) {
 			return;

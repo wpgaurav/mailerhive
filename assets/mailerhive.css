@@ -105,6 +105,16 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mh-prose .wp-block-image,.mh-prose .wp-block-embed{margin-inline:0}
 
 /* pager */
+/* share links */
+.mh-share{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem 1rem;margin:0 clamp(1.25rem, .75rem + 2vw, 2.75rem);padding:1.25rem 0 clamp(1.5rem, 1rem + 1.5vw, 2rem);border-top:1px solid var(--mh-line)}
+.mh-share__label{display:inline-flex;align-items:center;gap:.45rem;font-size:var(--mh-t7);font-weight:600;color:var(--mh-ink)}
+.mh-share__label .mh-icon{width:16px;height:16px;color:var(--mh-accent)}
+.mh-share__list{display:flex;flex-wrap:wrap;gap:.5rem;margin:0;padding:0;list-style:none}
+.mailerhive .mh-share__btn{display:inline-grid;place-items:center;width:38px;height:38px;margin:0;padding:0;background:var(--mh-card);border:1px solid var(--mh-line);border-radius:999px;color:var(--mh-muted);font:inherit;text-decoration:none;cursor:pointer;transition:color .22s var(--mh-ease),border-color .22s var(--mh-ease),background-color .22s var(--mh-ease)}
+.mailerhive .mh-share__btn:hover,.mailerhive .mh-share__btn.is-copied{color:var(--mh-accent);border-color:var(--mh-accent);background:var(--mh-tint)}
+.mailerhive .mh-share__btn .mh-icon{width:18px;height:18px}
+@media (pointer:coarse){.mailerhive .mh-share__btn{width:44px;height:44px}}
+@media (max-width:640px){.mh-share{margin-left:18px;margin-right:18px}}
 .mh-pager{display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:46rem;margin:1.5rem auto 0}
 .mailerhive .mh-pager__link{display:flex;flex-direction:column;gap:.25rem;padding:1rem 1.15rem;background:var(--mh-card);border:1px solid var(--mh-line);border-radius:12px;color:var(--mh-ink);text-decoration:none;transition:border-color .22s var(--mh-ease)}
 .mailerhive .mh-pager__link:hover{border-color:var(--mh-accent);color:var(--mh-ink)}
