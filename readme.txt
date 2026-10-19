@@ -4,7 +4,7 @@ Tags: newsletter, mailerpress, email archive, substack import, beehiiv
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.6
+Stable tag: 1.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ Yes, from Settings → Tools or with `wp mailerhive import-substack <slug>...`.
     wp mailerhive paid members|reconcile|sweep|grant|revoke|access [<args>]
 
 == Changelog ==
+
+= 1.4.7 =
+* A fresh install no longer publishes every newsletter MailerPress already sent. Those campaigns are held back, and Tools → Mirror past campaigns mirrors them when you want them. New sends are mirrored as before, and existing sites are unchanged.
+* "Create MailerPress draft" shows its result on the issue's edit screen when no campaign could be created, instead of a notice that only the Settings screen displayed.
+* Error messages on the Paid members and Settings screens show as errors, not green success notices.
+* The paywall heading adds "and above" whenever a higher tier exists, matching the "Who can read this issue" dropdown.
+* Setting Recent issues on the newsletter page to 0 hides the section instead of listing the site's default number of posts.
+* Reading time counts space-separated words in any script, so Hindi, Russian, and other non-Latin issues no longer show "1 min read".
+* Deactivating MailerHive clears the abandoned-checkout sweep, uninstalling clears a pending paid reconcile, and switching off the paid or FluentCart lifecycle module clears its scheduled check. The sync status says "mirrored" rather than "published".
 
 = 1.4.6 =
 * Single issues end with share links: X, LinkedIn, Facebook, Bluesky, Threads, WhatsApp, email, and copy link. They are plain links with no third-party scripts. Issues → Share links turns them off, and the `mailerhive_share_networks` filter adds, removes, or reorders networks.

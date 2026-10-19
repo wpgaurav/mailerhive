@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: MailerHive 1.4.6\n"
+"Project-Id-Version: MailerHive 1.4.7\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/mailerhive\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-19T02:13:42+00:00\n"
+"POT-Creation-Date: 2026-10-19T08:48:36+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: mailerhive\n"
@@ -34,15 +34,15 @@ msgstr ""
 msgid "https://gauravtiwari.org"
 msgstr ""
 
-#: includes/class-email.php:175
+#: includes/class-email.php:234
 msgid "Read this issue on the web"
 msgstr ""
 
-#: includes/class-email.php:180
+#: includes/class-email.php:239
 msgid "Unsubscribe"
 msgstr ""
 
-#: includes/class-email.php:180
+#: includes/class-email.php:239
 msgid "Manage subscription"
 msgstr ""
 
@@ -52,12 +52,12 @@ msgstr ""
 msgid "Open MailerPress campaign #%d"
 msgstr ""
 
-#: includes/class-mailerpress-bridge.php:102
+#: includes/class-mailerpress-bridge.php:124
 msgid "This issue is for paid subscribers."
 msgstr ""
 
-#: includes/class-mailerpress-bridge.php:102
-#: modules/src/class-paid-access.php:660
+#: includes/class-mailerpress-bridge.php:124
+#: modules/src/class-paid-access.php:661
 msgid "Subscribers only"
 msgstr ""
 
@@ -71,667 +71,688 @@ msgstr ""
 msgid "Get the next issue"
 msgstr ""
 
-#: includes/class-settings.php:445
+#: includes/class-settings.php:465
 msgid "Paid"
 msgstr ""
 
-#: includes/class-settings.php:446
+#: includes/class-settings.php:466
 msgid "Every issue, including the paid-only ones, and the full archive."
 msgstr ""
 
-#: includes/class-settings.php:447
+#: includes/class-settings.php:467
 msgid "Paid subscribers"
 msgstr ""
 
 #. translators: %s: tier name
-#: includes/class-settings.php:447
+#: includes/class-settings.php:467
 #: modules/src/class-paid-plans.php:372
 msgid "Managed by MailerHive from FluentCart purchases."
 msgstr ""
 
-#: includes/class-settings.php:479
+#: includes/class-settings.php:505
 msgid "Enter the Substack publication subdomain."
 msgstr ""
 
-#: includes/class-settings.php:635
+#: includes/class-settings.php:659
 msgid "Newsletter name"
 msgstr ""
 
-#: includes/class-settings.php:636
+#: includes/class-settings.php:660
 msgid "Sender name"
 msgstr ""
 
-#: includes/class-settings.php:636
+#: includes/class-settings.php:660
 msgid "Shown on every issue as the email sender."
 msgstr ""
 
-#: includes/class-settings.php:637
+#: includes/class-settings.php:661
 msgid "Byline"
 msgstr ""
 
-#: includes/class-settings.php:637
+#: includes/class-settings.php:661
 msgid "Shown under the newsletter name in the header, for example \"by Jane Doe\". Leave blank to hide."
 msgstr ""
 
-#: includes/class-settings.php:638
+#: includes/class-settings.php:662
 msgid "Sender line"
 msgstr ""
 
-#: includes/class-settings.php:638
+#: includes/class-settings.php:662
 msgid "The \"from\" line on each issue. Default: \"{Sender name} · {Newsletter name}\"."
 msgstr ""
 
-#: includes/class-settings.php:639
+#: includes/class-settings.php:663
 msgid "Tagline"
 msgstr ""
 
-#: includes/class-settings.php:639
+#: includes/class-settings.php:663
 msgid "Used on the archive and in the subscribe box."
 msgstr ""
 
-#: includes/class-settings.php:640
+#: includes/class-settings.php:664
 msgid "Branding"
 msgstr ""
 
-#: includes/class-settings.php:641
+#: includes/class-settings.php:665
 msgid "Header shows"
 msgstr ""
 
-#: includes/class-settings.php:642
+#: includes/class-settings.php:666
 msgid "Logo"
 msgstr ""
 
-#: includes/class-settings.php:642
+#: includes/class-settings.php:666
 msgid "SVG or PNG with a transparent background works best."
 msgstr ""
 
-#: includes/class-settings.php:643
+#: includes/class-settings.php:667
 msgid "Logo for dark mode"
 msgstr ""
 
-#: includes/class-settings.php:643
+#: includes/class-settings.php:667
 msgid "Optional. Falls back to the main logo."
 msgstr ""
 
-#: includes/class-settings.php:644
+#: includes/class-settings.php:668
 msgid "Logo width (px)"
 msgstr ""
 
-#: includes/class-settings.php:644
+#: includes/class-settings.php:668
 msgid "Display width in the header. Height follows the image."
 msgstr ""
 
-#: includes/class-settings.php:645
+#: includes/class-settings.php:669
 msgid "Avatar"
 msgstr ""
 
-#: includes/class-settings.php:645
+#: includes/class-settings.php:669
 msgid "Square photo or mark shown in the header and on each issue. Falls back to the initials."
 msgstr ""
 
-#: includes/class-settings.php:646
+#: includes/class-settings.php:670
 msgid "Avatar initials"
 msgstr ""
 
-#: includes/class-settings.php:646
+#: includes/class-settings.php:670
 msgid "Used when no avatar image is set."
 msgstr ""
 
-#: includes/class-settings.php:647
+#: includes/class-settings.php:671
 msgid "Signup"
 msgstr ""
 
-#: includes/class-settings.php:664
+#: includes/class-settings.php:688
 msgid "Signup form"
 msgstr ""
 
-#: includes/class-settings.php:664
+#: includes/class-settings.php:688
 msgid "The Core Forms form shown on issue pages and the archive. It must be registered with the site MailerPress consent policy, or signups fail closed."
 msgstr ""
 
-#: includes/class-settings.php:665
+#: includes/class-settings.php:689
 msgid "Custom form shortcode"
 msgstr ""
 
-#: includes/class-settings.php:665
+#: includes/class-settings.php:689
 msgid "Optional. Overrides the form above, for example a different form plugin."
 msgstr ""
 
-#: includes/class-settings.php:666
+#: includes/class-settings.php:690
 msgid "Header button label"
 msgstr ""
 
-#: includes/class-settings.php:670
+#: includes/class-settings.php:694
 msgid "Issue URL base"
 msgstr ""
 
-#: includes/class-settings.php:671
+#: includes/class-settings.php:695
 msgid "Archive title"
 msgstr ""
 
-#: includes/class-settings.php:671
+#: includes/class-settings.php:695
 msgid "Default: \"{Newsletter name}: every issue\"."
 msgstr ""
 
-#: includes/class-settings.php:672
+#: includes/class-settings.php:696
 msgid "Archive intro"
 msgstr ""
 
-#: includes/class-settings.php:672
+#: includes/class-settings.php:696
 msgid "Default: the tagline."
 msgstr ""
 
-#: includes/class-settings.php:673
+#: includes/class-settings.php:697
 msgid "Subscribe box"
 msgstr ""
 
-#: includes/class-settings.php:673
+#: includes/class-settings.php:697
 msgid "Show the signup box under every issue and on the archive"
 msgstr ""
 
-#: includes/class-settings.php:674
+#: includes/class-settings.php:698
 msgid "Subscribe heading"
 msgstr ""
 
-#: includes/class-settings.php:675
+#: includes/class-settings.php:699
 msgid "Subscribe facts"
 msgstr ""
 
-#: includes/class-settings.php:675
+#: includes/class-settings.php:699
 msgid "One short fact per line, shown with dot bullets under the form."
 msgstr ""
 
-#: includes/class-settings.php:676
+#: includes/class-settings.php:700
 msgid "Issue navigation"
 msgstr ""
 
-#: includes/class-settings.php:676
+#: includes/class-settings.php:700
 msgid "Show previous and next issue links"
 msgstr ""
 
-#: includes/class-settings.php:677
+#: includes/class-settings.php:701
 msgid "Share links"
 msgstr ""
 
-#: includes/class-settings.php:677
+#: includes/class-settings.php:701
 msgid "Show share links under every issue"
 msgstr ""
 
-#: includes/class-settings.php:677
+#: includes/class-settings.php:701
 msgid "X, LinkedIn, Facebook, Bluesky, Threads, WhatsApp, email and copy link. Plain links, no third-party scripts."
 msgstr ""
 
-#: includes/class-settings.php:678
+#: includes/class-settings.php:702
 msgid "External links"
 msgstr ""
 
-#: includes/class-settings.php:678
+#: includes/class-settings.php:702
 msgid "Add rel=\"nofollow noopener\" to every external link in issues"
 msgstr ""
 
-#: includes/class-settings.php:679
+#: includes/class-settings.php:703
 msgid "Open externally"
 msgstr ""
 
-#: includes/class-settings.php:679
+#: includes/class-settings.php:703
 msgid "Open external links in a new tab"
 msgstr ""
 
-#: includes/class-settings.php:680
+#: includes/class-settings.php:704
 msgid "Extra internal hosts"
 msgstr ""
 
-#: includes/class-settings.php:680
+#: includes/class-settings.php:704
 msgid "Hosts treated as internal (no nofollow). The site and its subdomains are always internal. One per line."
 msgstr ""
 
-#: includes/class-settings.php:684
+#: includes/class-settings.php:708
 msgid "Theme isolation"
 msgstr ""
 
-#: includes/class-settings.php:684
+#: includes/class-settings.php:708
 msgid "Detach theme styles, scripts and hooks on MailerHive pages"
 msgstr ""
 
-#: includes/class-settings.php:684
+#: includes/class-settings.php:708
 msgid "WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters."
 msgstr ""
 
-#: includes/class-settings.php:685
-#: includes/class-settings.php:733
+#: includes/class-settings.php:709
+#: includes/class-settings.php:761
 msgid "Subscription pages"
 msgstr ""
 
-#: includes/class-settings.php:685
+#: includes/class-settings.php:709
 msgid "Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell"
 msgstr ""
 
-#: includes/class-settings.php:686
+#: includes/class-settings.php:710
 #: modules/src/class-paid-admin.php:122
 msgid "Newsletter page"
 msgstr ""
 
-#: includes/class-settings.php:686
+#: includes/class-settings.php:710
 msgid "Render the newsletter page in the MailerHive design"
 msgstr ""
 
-#: includes/class-settings.php:686
+#: includes/class-settings.php:710
 msgid "Signup card, recent issues, then the page’s own content as a reading card. The page template setting is ignored while this is on."
 msgstr ""
 
-#: includes/class-settings.php:687
+#: includes/class-settings.php:711
 msgid "Recent issues on the newsletter page"
 msgstr ""
 
-#: includes/class-settings.php:688
+#: includes/class-settings.php:711
+msgid "How many recent issues to list, up to 50. Set 0 to hide the section."
+msgstr ""
+
+#: includes/class-settings.php:712
 msgid "Color scheme"
 msgstr ""
 
-#: includes/class-settings.php:689
+#: includes/class-settings.php:713
 msgid "Theme toggle"
 msgstr ""
 
-#: includes/class-settings.php:689
+#: includes/class-settings.php:713
 msgid "Show a light/dark toggle in the header"
 msgstr ""
 
-#: includes/class-settings.php:689
+#: includes/class-settings.php:713
 msgid "Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark."
 msgstr ""
 
-#: includes/class-settings.php:690
+#: includes/class-settings.php:714
 msgid "Accent (light)"
 msgstr ""
 
-#: includes/class-settings.php:691
+#: includes/class-settings.php:715
 msgid "Accent (dark)"
 msgstr ""
 
-#: includes/class-settings.php:691
+#: includes/class-settings.php:715
 msgid "Used for buttons and links on dark backgrounds."
 msgstr ""
 
-#: includes/class-settings.php:692
+#: includes/class-settings.php:716
 msgid "Header links"
 msgstr ""
 
-#: includes/class-settings.php:692
+#: includes/class-settings.php:716
 msgid "One per line as <code>Label | URL</code>. A Subscribe button is always added."
 msgstr ""
 
-#: includes/class-settings.php:693
+#: includes/class-settings.php:717
 msgid "Footer note"
 msgstr ""
 
-#: includes/class-settings.php:694
+#: includes/class-settings.php:718
 msgid "Footer links"
 msgstr ""
 
-#: includes/class-settings.php:694
+#: includes/class-settings.php:718
 msgid "One per line as <code>Label | URL</code>."
 msgstr ""
 
-#: includes/class-settings.php:695
+#: includes/class-settings.php:719
 msgid "Privacy policy URL"
 msgstr ""
 
-#: includes/class-settings.php:696
+#: includes/class-settings.php:720
 msgid "Extra CSS"
 msgstr ""
 
-#: includes/class-settings.php:696
+#: includes/class-settings.php:720
 msgid "Loaded after MailerHive’s stylesheet on its pages only."
 msgstr ""
 
-#: includes/class-settings.php:713
+#: includes/class-settings.php:737
 msgid "One-click email drafts"
 msgstr ""
 
-#: includes/class-settings.php:713
+#: includes/class-settings.php:737
 msgid "Drafts are never scheduled or sent. Open MailerPress → Campaigns to review and send. Every draft includes Unsubscribe and Manage subscription links, which MailerPress fills in per recipient. No MailerPress Automation is needed."
 msgstr ""
 
-#: includes/class-settings.php:715
+#: includes/class-settings.php:739
 msgid "Send drafts to"
 msgstr ""
 
-#: includes/class-settings.php:715
+#: includes/class-settings.php:739
 msgid "Leave empty to use the mirror lists below."
 msgstr ""
 
-#: includes/class-settings.php:716
+#: includes/class-settings.php:740
 msgid "Subject line"
 msgstr ""
 
-#: includes/class-settings.php:716
+#: includes/class-settings.php:740
 msgid "Placeholders: <code>{title}</code>, <code>{newsletter}</code>."
 msgstr ""
 
-#: includes/class-settings.php:717
+#: includes/class-settings.php:741
 msgid "From name"
 msgstr ""
 
-#: includes/class-settings.php:718
+#: includes/class-settings.php:742
 msgid "From email"
 msgstr ""
 
-#: includes/class-settings.php:719
+#: includes/class-settings.php:743
 msgid "Email footer note"
 msgstr ""
 
-#: includes/class-settings.php:719
+#: includes/class-settings.php:743
 msgid "Shown above the Unsubscribe and Manage subscription links."
 msgstr ""
 
-#: includes/class-settings.php:720
+#: includes/class-settings.php:744
 msgid "Campaigns written in MailerPress"
 msgstr ""
 
-#: includes/class-settings.php:721
+#: includes/class-settings.php:745
 msgid "Mirror campaigns"
 msgstr ""
 
-#: includes/class-settings.php:721
+#: includes/class-settings.php:745
 msgid "Publish newsletters composed directly in MailerPress as issues once they are sent"
 msgstr ""
 
-#: includes/class-settings.php:722
-msgid "Mirror lists"
-msgstr ""
-
-#: includes/class-settings.php:722
+#: includes/class-settings.php:746
 msgid "Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private."
 msgstr ""
 
-#: includes/class-settings.php:723
+#: includes/class-settings.php:748
+msgid "Newsletters sent before MailerHive was installed are held back until you use Mirror past campaigns on the Tools tab."
+msgstr ""
+
+#: includes/class-settings.php:750
+msgid "Mirror lists"
+msgstr ""
+
+#: includes/class-settings.php:751
 msgid "Mirrored issue status"
 msgstr ""
 
-#: includes/class-settings.php:724
+#: includes/class-settings.php:752
 msgid "View in browser"
 msgstr ""
 
-#: includes/class-settings.php:724
+#: includes/class-settings.php:752
 msgid "Send MailerPress \"view in browser\" links to the matching issue page"
 msgstr ""
 
-#: includes/class-settings.php:733
+#: includes/class-settings.php:761
 msgid "Set in MailerPress → Settings. MailerHive renders them in its shell when enabled on the Design tab."
 msgstr ""
 
-#: includes/class-settings.php:743
+#: includes/class-settings.php:771
 msgid "Rybbit"
 msgstr ""
 
-#: includes/class-settings.php:743
+#: includes/class-settings.php:771
 msgid "Load the Rybbit tracking script on MailerHive pages"
 msgstr ""
 
-#: includes/class-settings.php:743
+#: includes/class-settings.php:771
 msgid "The site’s Rybbit tag comes from the theme’s footer scripts, which theme isolation detaches, so MailerHive prints its own copy."
 msgstr ""
 
-#: includes/class-settings.php:744
+#: includes/class-settings.php:772
 msgid "Script URL"
 msgstr ""
 
-#: includes/class-settings.php:745
+#: includes/class-settings.php:773
 msgid "Site ID"
 msgstr ""
 
-#: includes/class-settings.php:746
+#: includes/class-settings.php:774
 msgid "Extra head HTML"
 msgstr ""
 
-#: includes/class-settings.php:746
+#: includes/class-settings.php:774
 msgid "Optional tags printed in the &lt;head&gt; of MailerHive pages, such as another analytics or verification tag."
 msgstr ""
 
-#: includes/class-settings.php:751
-#: includes/class-settings.php:770
+#: includes/class-settings.php:779
+#: includes/class-settings.php:798
 msgid "Paid tiers"
 msgstr ""
 
-#: includes/class-settings.php:751
+#: includes/class-settings.php:779
 msgid "Turn on Paid subscriptions on the Modules tab first."
 msgstr ""
 
-#: includes/class-settings.php:758
+#: includes/class-settings.php:786
 msgid "Consent policy"
 msgstr ""
 
-#: includes/class-settings.php:758
+#: includes/class-settings.php:786
 msgid "Gate Core Forms → MailerPress signups on a reviewed consent route"
 msgstr ""
 
-#: includes/class-settings.php:758
+#: includes/class-settings.php:786
 msgid "Only registered forms can add contacts, the consent checkbox must carry the exact disclosure on record, spam and existing opt-outs are respected, and consent evidence is saved on the contact. Unregistered forms fail closed."
 msgstr ""
 
 #. translators: %d: number of forms
-#: includes/class-settings.php:763
+#: includes/class-settings.php:791
 #, php-format
 msgid "%d form registered."
 msgid_plural "%d forms registered."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-settings.php:765
+#: includes/class-settings.php:793
 msgid "Your signup form is registered."
 msgstr ""
 
-#: includes/class-settings.php:765
+#: includes/class-settings.php:793
 msgid "Your signup form is not registered yet."
 msgstr ""
 
-#: includes/class-settings.php:767
+#: includes/class-settings.php:795
 msgid "Registered forms"
 msgstr ""
 
-#: includes/class-settings.php:767
+#: includes/class-settings.php:795
 msgid "Register the signup form"
 msgstr ""
 
-#: includes/class-settings.php:767
+#: includes/class-settings.php:795
 msgid "Registers the form chosen on the General tab using its MailerPress action and consent checkbox. Re-run after editing that form’s action or consent wording."
 msgstr ""
 
-#: includes/class-settings.php:768
+#: includes/class-settings.php:796
 msgid "Consent version"
 msgstr ""
 
-#: includes/class-settings.php:768
+#: includes/class-settings.php:796
 msgid "Saved with every new consent record. Change it when you change the disclosure wording."
 msgstr ""
 
-#: includes/class-settings.php:769
+#: includes/class-settings.php:797
 msgid "Paid subscriptions"
 msgstr ""
 
-#: includes/class-settings.php:770
+#: includes/class-settings.php:798
 msgid "Sell newsletter subscriptions through FluentCart"
 msgstr ""
 
-#: includes/class-settings.php:770
+#: includes/class-settings.php:798
 msgid "Recurring plans follow the FluentCart subscription; one-time plans give a fixed term or lifetime access. Paid issues show a preview and the plans, and each tier gets its own MailerPress list. Set tiers on the Paid tab."
 msgstr ""
 
-#: includes/class-settings.php:771
+#: includes/class-settings.php:799
 msgid "FluentCart"
 msgstr ""
 
-#: includes/class-settings.php:772
+#: includes/class-settings.php:800
 msgid "Lifecycle tags"
 msgstr ""
 
-#: includes/class-settings.php:772
+#: includes/class-settings.php:800
 msgid "Tag MailerPress contacts from FluentCart purchases, refunds and abandoned checkouts"
 msgstr ""
 
-#: includes/class-settings.php:772
+#: includes/class-settings.php:800
 msgid "A paid order creates a contact and applies purchase tags. The contact is subscribed and added to the customer list only when the buyer agreed at checkout: they ticked the MailerPress Pro checkout checkbox, or a custom field posted the disclosure below. Existing contacts are never re-subscribed."
 msgstr ""
 
-#: includes/class-settings.php:773
+#: includes/class-settings.php:801
 msgid "Customer list"
 msgstr ""
 
-#: includes/class-settings.php:773
+#: includes/class-settings.php:801
 msgid "MailerPress list name for paying customers who agreed at checkout."
 msgstr ""
 
-#: includes/class-settings.php:774
+#: includes/class-settings.php:802
 msgid "Checkout disclosure"
 msgstr ""
 
-#: includes/class-settings.php:774
+#: includes/class-settings.php:802
 msgid "Only for a custom checkout field: the exact text it must post as mailerpress_disclosure (or mailerpress_subscribe). The MailerPress Pro checkout checkbox needs nothing here; its label is saved as the disclosure. With neither, a purchase never counts as newsletter consent."
 msgstr ""
 
-#: includes/class-settings.php:775
+#: includes/class-settings.php:803
 msgid "Category tags"
 msgstr ""
 
-#: includes/class-settings.php:775
+#: includes/class-settings.php:803
 msgid "One per line as <code>product-category-slug | Tag name</code>. Buyers of products in that category get the tag."
 msgstr ""
 
-#: includes/class-settings.php:776
+#: includes/class-settings.php:804
 msgid "MailerPress editor"
 msgstr ""
 
-#: includes/class-settings.php:777
+#: includes/class-settings.php:805
 msgid "Rich paste"
 msgstr ""
 
-#: includes/class-settings.php:777
+#: includes/class-settings.php:805
 msgid "Paste Google Docs and block-editor content into MailerPress as native email blocks"
 msgstr ""
 
-#: includes/class-settings.php:778
+#: includes/class-settings.php:806
 msgid "Imports"
 msgstr ""
 
-#: includes/class-settings.php:779
+#: includes/class-settings.php:807
 msgid "Substack publication"
 msgstr ""
 
-#: includes/class-settings.php:779
+#: includes/class-settings.php:807
 msgid "Subdomain only, for example <code>yourname</code> for yourname.substack.com. Used by the importer and relinking."
 msgstr ""
 
-#: includes/class-settings.php:785
+#: includes/class-settings.php:813
 msgid "Turn on the consent policy module first."
 msgstr ""
 
-#: includes/class-settings.php:790
+#: includes/class-settings.php:818
 msgid "Choose a Core Forms signup form on the General tab first."
 msgstr ""
 
-#: includes/class-settings.php:801
+#: includes/class-settings.php:829
 msgid "The signup form has no MailerPress action."
 msgstr ""
 
-#: includes/class-settings.php:812
+#: includes/class-settings.php:840
 msgid "The signup form needs a required consent checkbox."
 msgstr ""
 
 #. translators: %s: form title
-#: includes/class-settings.php:841
+#: includes/class-settings.php:869
 #, php-format
 msgid "“%s” is registered with the consent policy."
 msgstr ""
 
-#: includes/class-settings.php:848
+#: includes/class-settings.php:876
 #: modules/src/class-paid-admin.php:468
 msgid "Not allowed."
 msgstr ""
 
-#: includes/class-settings.php:855
+#: includes/class-settings.php:883
 msgid "License activated. This site now gets MailerHive updates."
 msgstr ""
 
-#: includes/class-settings.php:858
+#: includes/class-settings.php:886
 msgid "License is active."
 msgstr ""
 
-#: includes/class-settings.php:861
+#: includes/class-settings.php:889
 msgid "License disconnected from this site."
 msgstr ""
 
-#: includes/class-settings.php:879
+#: includes/class-settings.php:907
 msgid "Activate your free MailerHive license to get automatic updates."
 msgstr ""
 
-#: includes/class-settings.php:881
-#: includes/class-settings.php:914
+#: includes/class-settings.php:909
+#: includes/class-settings.php:942
 msgid "Activate license"
 msgstr ""
 
-#: includes/class-settings.php:896
+#: includes/class-settings.php:924
 msgid "License"
 msgstr ""
 
-#: includes/class-settings.php:897
+#: includes/class-settings.php:925
 msgid "The license only unlocks automatic updates. Every MailerHive feature works without it."
 msgstr ""
 
-#: includes/class-settings.php:901
+#: includes/class-settings.php:929
 #: modules/src/class-paid-members.php:641
 msgid "Status"
 msgstr ""
 
-#: includes/class-settings.php:901
+#: includes/class-settings.php:929
 #: modules/src/class-paid-admin.php:550
 msgid "Active"
 msgstr ""
 
-#: includes/class-settings.php:901
+#: includes/class-settings.php:929
 msgid "Inactive"
 msgstr ""
 
-#: includes/class-settings.php:902
+#: includes/class-settings.php:930
 msgid "Key"
 msgstr ""
 
-#: includes/class-settings.php:904
+#: includes/class-settings.php:932
 msgid "Plan"
 msgstr ""
 
-#: includes/class-settings.php:906
+#: includes/class-settings.php:934
 #: modules/src/class-paid-members.php:644
 msgid "Expires"
 msgstr ""
 
-#: includes/class-settings.php:906
+#: includes/class-settings.php:934
 msgid "Never"
 msgstr ""
 
-#: includes/class-settings.php:908
+#: includes/class-settings.php:936
 msgid "Last checked"
 msgstr ""
 
-#: includes/class-settings.php:911
+#: includes/class-settings.php:939
 msgid "Check license"
 msgstr ""
 
-#: includes/class-settings.php:912
+#: includes/class-settings.php:940
 msgid "Disconnect from this site"
 msgstr ""
 
-#: includes/class-settings.php:914
+#: includes/class-settings.php:942
 msgid "License key"
 msgstr ""
 
-#: includes/class-settings.php:917
+#: includes/class-settings.php:945
 msgid "No key yet? The license is free, for unlimited sites."
 msgstr ""
 
-#: includes/class-settings.php:919
+#: includes/class-settings.php:947
 msgid "Get your free license"
 msgstr ""
 
-#: includes/class-settings.php:973
+#. translators: %d: number of campaigns
+#: includes/class-settings.php:997
+msgid "Mirror past campaigns"
+msgstr ""
+
+#. translators: %d: number of campaigns
+#: includes/class-settings.php:997
+#, php-format
+msgid "%d newsletter sent before MailerHive was installed is held back. This mirrors it if it went to a mirror list, using the mirrored issue status on the MailerPress tab."
+msgid_plural "%d newsletters sent before MailerHive was installed are held back. This mirrors the ones sent to a mirror list, using the mirrored issue status on the MailerPress tab."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-settings.php:1006
 msgid "Publication subdomain"
 msgstr ""
 
@@ -901,47 +922,47 @@ msgid "Sign-out has to be submitted from the account form."
 msgstr ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-access.php:381
+#: modules/src/class-paid-access.php:382
 #, php-format
 msgid "This issue is for %s subscribers"
 msgstr ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-access.php:383
+#: modules/src/class-paid-access.php:384
 #, php-format
 msgid "This issue is for %s subscribers and above"
 msgstr ""
 
 #. translators: %s: email address
-#: modules/src/class-paid-access.php:393
+#: modules/src/class-paid-access.php:394
 #, php-format
 msgid "You are signed in as %s, which has no active subscription at this level."
 msgstr ""
 
-#: modules/src/class-paid-access.php:411
+#: modules/src/class-paid-access.php:412
 msgid "Already a paid subscriber?"
 msgstr ""
 
-#: modules/src/class-paid-access.php:413
+#: modules/src/class-paid-access.php:414
 msgid "If that email has an active subscription, a reading link is on its way. It works once and expires in an hour."
 msgstr ""
 
-#: modules/src/class-paid-access.php:419
 #: modules/src/class-paid-access.php:420
+#: modules/src/class-paid-access.php:421
 msgid "Email you subscribed with"
 msgstr ""
 
-#: modules/src/class-paid-access.php:421
+#: modules/src/class-paid-access.php:422
 msgid "Email me a reading link"
 msgstr ""
 
-#: modules/src/class-paid-access.php:424
+#: modules/src/class-paid-access.php:425
 msgid "Or sign in to your account"
 msgstr ""
 
 #. translators: %s: free tier name
-#: modules/src/class-paid-access.php:438
-#: modules/src/class-paid-access.php:444
+#: modules/src/class-paid-access.php:439
+#: modules/src/class-paid-access.php:445
 #: modules/src/class-paid-admin.php:40
 #: modules/src/class-paid-admin.php:72
 #: modules/src/class-paid-admin.php:90
@@ -949,73 +970,73 @@ msgstr ""
 msgid "Free"
 msgstr ""
 
-#: modules/src/class-paid-access.php:443
+#: modules/src/class-paid-access.php:444
 msgid "Subscribe by email"
 msgstr ""
 
-#: modules/src/class-paid-access.php:445
+#: modules/src/class-paid-access.php:446
 msgid "unsubscribe anytime"
 msgstr ""
 
-#: modules/src/class-paid-access.php:528
+#: modules/src/class-paid-access.php:529
 #: modules/src/class-paid-admin.php:124
 msgid "Become a paid subscriber"
 msgstr ""
 
 #. translators: %s: email
-#: modules/src/class-paid-access.php:556
+#: modules/src/class-paid-access.php:557
 #, php-format
 msgid "Signed in as %s."
 msgstr ""
 
-#: modules/src/class-paid-access.php:558
+#: modules/src/class-paid-access.php:559
 msgid "There is no paid subscription on this email yet."
 msgstr ""
 
-#: modules/src/class-paid-access.php:575
+#: modules/src/class-paid-access.php:576
 msgid "Manage billing and renewals"
 msgstr ""
 
-#: modules/src/class-paid-access.php:582
+#: modules/src/class-paid-access.php:583
 msgid "Forget this device"
 msgstr ""
 
-#: modules/src/class-paid-access.php:591
+#: modules/src/class-paid-access.php:592
 msgid "Active, no end date"
 msgstr ""
 
 #. translators: %s: date
-#: modules/src/class-paid-access.php:595
+#: modules/src/class-paid-access.php:596
 #, php-format
 msgid "Active, renews around %s"
 msgstr ""
 
 #. translators: %s: date
-#: modules/src/class-paid-access.php:599
+#: modules/src/class-paid-access.php:600
 #, php-format
 msgid "Active until %s"
 msgstr ""
 
-#: modules/src/class-paid-access.php:602
+#: modules/src/class-paid-access.php:603
 msgid "Paused"
 msgstr ""
 
-#: modules/src/class-paid-access.php:603
+#: modules/src/class-paid-access.php:604
 msgid "Refunded"
 msgstr ""
 
-#: modules/src/class-paid-access.php:604
+#: modules/src/class-paid-access.php:605
 msgid "Revoked"
 msgstr ""
 
 #. translators: %s: date
-#: modules/src/class-paid-access.php:607
+#: modules/src/class-paid-access.php:608
 #, php-format
 msgid "Ended %s"
 msgstr ""
 
 #. translators: %s: tier name
-#: modules/src/class-paid-access.php:636
+#: modules/src/class-paid-access.php:637
 #, php-format
 msgid "Continue reading (for %s subscribers)"
 msgstr ""
@@ -1396,31 +1417,31 @@ msgid "Remove this tier? Issues set to it become free, and its readers are taken
 msgstr ""
 
 #: modules/src/class-paid-admin.php:459
-#: modules/src/class-paid-admin.php:525
+#: modules/src/class-paid-admin.php:529
 msgid "Paid members"
 msgstr ""
 
 #. translators: 1: email, 2: tier
-#: modules/src/class-paid-admin.php:480
+#: modules/src/class-paid-admin.php:481
 #, php-format
 msgid "%1$s now has %2$s access."
 msgstr ""
 
 #. translators: 1: email, 2: tier
-#: modules/src/class-paid-admin.php:480
+#: modules/src/class-paid-admin.php:481
 msgid "Enter a valid email and tier."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:482
+#: modules/src/class-paid-admin.php:485
 msgid "Access revoked."
 msgstr ""
 
-#: modules/src/class-paid-admin.php:482
+#: modules/src/class-paid-admin.php:485
 msgid "Only manual grants can be revoked here. Cancel or refund FluentCart purchases in FluentCart."
 msgstr ""
 
 #. translators: %d: number of customers
-#: modules/src/class-paid-admin.php:485
+#: modules/src/class-paid-admin.php:489
 #, php-format
 msgid "Re-checked %d FluentCart customer(s)."
 msgstr ""
@@ -1695,45 +1716,45 @@ msgid "Issue pages"
 msgstr ""
 
 #. translators: %d: minutes
-#: templates/issue.php:32
+#: templates/issue.php:35
 #, php-format
 msgid "%d min read"
 msgid_plural "%d min read"
 msgstr[0] ""
 msgstr[1] ""
 
-#: templates/issue.php:55
+#: templates/issue.php:58
 msgid "More issues"
 msgstr ""
 
-#: templates/issue.php:57
+#: templates/issue.php:60
 msgid "Previous issue"
 msgstr ""
 
-#: templates/issue.php:60
+#: templates/issue.php:63
 msgid "Next issue"
 msgstr ""
 
 #. translators: %d: number of issues
-#: templates/landing.php:38
+#: templates/landing.php:40
 #, php-format
 msgid "%d issue"
 msgid_plural "%d issues"
 msgstr[0] ""
 msgstr[1] ""
 
-#: templates/landing.php:40
+#: templates/landing.php:42
 msgid "Free by email"
 msgstr ""
 
-#: templates/landing.php:53
+#: templates/landing.php:55
 msgid "Read a past issue first"
 msgstr ""
 
-#: templates/landing.php:62
+#: templates/landing.php:64
 msgid "Recent issues"
 msgstr ""
 
-#: templates/landing.php:74
+#: templates/landing.php:76
 msgid "See every issue"
 msgstr ""
