@@ -68,7 +68,11 @@ MailerHive\Email::init();
 register_activation_hook(
 	__FILE__,
 	static function (): void {
+		$fresh = false === get_option( MailerHive\Settings::OPTION );
 		MailerHive\Settings::seed();
+		if ( $fresh ) {
+			MailerHive\MailerPress_Bridge::hold_back_catalogue();
+		}
 		MailerHive\Issues::register();
 		flush_rewrite_rules( false );
 	}
@@ -79,6 +83,7 @@ register_deactivation_hook(
 	static function (): void {
 		wp_clear_scheduled_hook( MailerHive\MailerPress_Bridge::SYNC_HOOK );
 		wp_clear_scheduled_hook( 'mailerhive_paid_sweep' );
+		wp_clear_scheduled_hook( 'mailerhive_fc_abandoned_sweep' );
 		flush_rewrite_rules( false );
 	}
 );

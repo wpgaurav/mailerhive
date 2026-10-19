@@ -20,4 +20,14 @@ if ( MailerHive\Settings::on( 'module_paid' ) ) {
 	MailerHive\Modules\Paid\Admin::boot();
 	MailerHive\Modules\Paid\Visibility::boot();
 	add_action( 'mailerhive_paid_reconcile_all', array( 'MailerHive\\Modules\\Paid\\Members', 'reconcile_all' ) );
+} else {
+	// Switched off: drop the hourly expiry check it scheduled, which nothing handles now.
+	add_action(
+		'init',
+		static function (): void {
+			if ( wp_next_scheduled( 'mailerhive_paid_sweep' ) ) {
+				wp_clear_scheduled_hook( 'mailerhive_paid_sweep' );
+			}
+		}
+	);
 }

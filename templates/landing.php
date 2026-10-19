@@ -16,11 +16,13 @@ the_post();
 $mailerhive_form   = Settings::form_shortcode();
 $mailerhive_facts  = Settings::lines( 'subscribe_facts' );
 $mailerhive_byline = (string) Settings::get( 'byline' );
-$mailerhive_recent = get_posts(
+$mailerhive_limit  = (int) Settings::get( 'landing_recent' );
+// 0 hides the section. get_posts() would read 0 as "use the site's default count".
+$mailerhive_recent = $mailerhive_limit < 1 ? array() : get_posts(
 	array(
 		'post_type'      => Issues::TYPE,
 		'post_status'    => 'publish',
-		'posts_per_page' => max( 0, (int) Settings::get( 'landing_recent' ) ),
+		'posts_per_page' => $mailerhive_limit,
 		'orderby'        => 'date',
 		'order'          => 'DESC',
 		'no_found_rows'  => true,

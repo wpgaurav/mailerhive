@@ -468,8 +468,9 @@ final class Admin {
 			wp_die( esc_html__( 'Not allowed.', 'mailerhive' ) );
 		}
 		check_admin_referer( 'mailerhive_members' );
-		$op  = sanitize_key( wp_unslash( $_REQUEST['op'] ?? '' ) );
-		$msg = '';
+		$op    = sanitize_key( wp_unslash( $_REQUEST['op'] ?? '' ) );
+		$msg   = '';
+		$error = false;
 		if ( 'grant' === $op ) {
 			$email   = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
 			$tier    = sanitize_key( wp_unslash( $_POST['tier'] ?? '' ) );
@@ -477,14 +478,17 @@ final class Admin {
 			$expires = $until && strtotime( $until ) ? gmdate( 'Y-m-d 23:59:59', strtotime( $until ) ) : null;
 			$id      = Members::grant( $email, $tier, $expires, sanitize_text_field( wp_unslash( $_POST['note'] ?? '' ) ) );
 			/* translators: 1: email, 2: tier */
-			$msg = $id ? sprintf( __( '%1$s now has %2$s access.', 'mailerhive' ), $email, Plans::name( $tier ) ) : __( 'Enter a valid email and tier.', 'mailerhive' );
+			$msg   = $id ? sprintf( __( '%1$s now has %2$s access.', 'mailerhive' ), $email, Plans::name( $tier ) ) : __( 'Enter a valid email and tier.', 'mailerhive' );
+			$error = ! $id;
 		} elseif ( 'revoke' === $op ) {
-			$msg = Members::revoke( absint( $_REQUEST['id'] ?? 0 ) ) ? __( 'Access revoked.', 'mailerhive' ) : __( 'Only manual grants can be revoked here. Cancel or refund FluentCart purchases in FluentCart.', 'mailerhive' );
+			$done  = Members::revoke( absint( $_REQUEST['id'] ?? 0 ) );
+			$msg   = $done ? __( 'Access revoked.', 'mailerhive' ) : __( 'Only manual grants can be revoked here. Cancel or refund FluentCart purchases in FluentCart.', 'mailerhive' );
+			$error = ! $done;
 		} elseif ( 'reconcile' === $op ) {
 			/* translators: %d: number of customers */
 			$msg = sprintf( __( 'Re-checked %d FluentCart customer(s).', 'mailerhive' ), Members::reconcile_all() );
 		}
-		set_transient( 'mailerhive_notice_' . get_current_user_id(), $msg, 60 );
+		Settings::flash( $msg, $error );
 		wp_safe_redirect( self::url() );
 		exit;
 	}
@@ -523,11 +527,7 @@ final class Admin {
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * {$sql} ORDER BY updated_at DESC LIMIT %d OFFSET %d", array_merge( $args, array( $per, ( $paged - 1 ) * $per ) ) ) ) ?: array();
 
 		echo '<div class="wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Paid members', 'mailerhive' ) . '</h1>';
-		$notice = get_transient( 'mailerhive_notice_' . get_current_user_id() );
-		if ( $notice ) {
-			delete_transient( 'mailerhive_notice_' . get_current_user_id() );
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
-		}
+		Settings::print_flash();
 		if ( ! Plans::tiers() ) {
 			echo '<div class="notice notice-info"><p><a href="' . esc_url( add_query_arg( 'tab', 'paid', Settings::url() ) ) . '">' . esc_html__( 'Set up a paid tier first.', 'mailerhive' ) . '</a></p></div></div>';
 			return;

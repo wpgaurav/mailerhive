@@ -19,7 +19,10 @@ $mailerhive_text = (string) $mailerhive_post->post_content;
 if ( class_exists( '\MailerHive\Modules\Paid\Access' ) && \MailerHive\Modules\Paid\Access::is_paid( $mailerhive_post ) && ! \MailerHive\Modules\Paid\Access::can_read( $mailerhive_post ) ) {
 	$mailerhive_text = \MailerHive\Modules\Paid\Access::preview_plain( $mailerhive_post );
 }
-$mailerhive_words = str_word_count( wp_strip_all_tags( $mailerhive_text ) );
+// Whitespace-separated tokens, so Devanagari, Cyrillic and other non-Latin scripts count too.
+$mailerhive_plain = html_entity_decode( wp_strip_all_tags( $mailerhive_text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+$mailerhive_split = preg_split( '/[\s\p{Z}]+/u', $mailerhive_plain, -1, PREG_SPLIT_NO_EMPTY );
+$mailerhive_words = false === $mailerhive_split ? str_word_count( $mailerhive_plain ) : count( $mailerhive_split );
 $mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / 230 ) );
 ?>
 <main id="mh-main" class="mh-main">

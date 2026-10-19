@@ -304,6 +304,26 @@ final class Settings {
 		update_option( self::OPTION, $s, false );
 	}
 
+	/** Queue a one-time admin notice for the current user. */
+	public static function flash( string $message, bool $error = false ): void {
+		if ( '' === $message ) {
+			return;
+		}
+		set_transient( 'mailerhive_notice_' . get_current_user_id(), array( 'message' => $message, 'error' => $error ), 60 );
+	}
+
+	/** Print and clear the queued notice. Notices queued as plain strings count as successes. */
+	public static function print_flash(): void {
+		$key    = 'mailerhive_notice_' . get_current_user_id();
+		$notice = get_transient( $key );
+		if ( ! $notice ) {
+			return;
+		}
+		delete_transient( $key );
+		$notice = is_array( $notice ) ? $notice : array( 'message' => (string) $notice );
+		printf( '<div class="notice %s is-dismissible"><p>%s</p></div>', empty( $notice['error'] ) ? 'notice-success' : 'notice-error', esc_html( (string) ( $notice['message'] ?? '' ) ) );
+	}
+
 	public static function maybe_flush(): void {
 		if ( get_option( self::FLUSH_FLAG ) ) {
 			delete_option( self::FLUSH_FLAG );
@@ -462,12 +482,18 @@ final class Settings {
 		}
 		check_admin_referer( 'mailerhive_tool' );
 		$tool = sanitize_key( wp_unslash( $_REQUEST['tool'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification -- checked above.
-		$msg  = '';
-		$back = 'tools';
+		$msg   = '';
+		$error = false;
+		$back  = 'tools';
 		switch ( $tool ) {
 			case 'sync':
 				$r   = MailerPress_Bridge::sync();
-				$msg = sprintf( 'Sync finished: %d campaign(s) linked, %d newsletter(s) published.', $r['linked'], $r['mirrored'] );
+				$msg = sprintf( 'Sync finished: %d campaign(s) linked, %d newsletter(s) mirrored as %s issues.', $r['linked'], $r['mirrored'], 'draft' === self::get( 'mirror_status' ) ? 'draft' : 'published' );
+				break;
+			case 'release_held':
+				delete_option( MailerPress_Bridge::HOLD_OPTION );
+				$r   = MailerPress_Bridge::sync();
+				$msg = sprintf( 'Past campaigns released: %d newsletter(s) mirrored.', $r['mirrored'] );
 				break;
 			case 'relink':
 				$msg = sprintf( 'Relinked %d issue(s).', Importer::relink() );
@@ -476,7 +502,8 @@ final class Settings {
 				$slugs = array_filter( array_map( 'sanitize_title', preg_split( '/[\s,]+/', sanitize_textarea_field( wp_unslash( $_POST['slugs'] ?? '' ) ) ) ) );
 				$pub   = sanitize_key( wp_unslash( $_POST['publication'] ?? '' ) );
 				if ( '' === $pub ) {
-					$msg = __( 'Enter the Substack publication subdomain.', 'mailerhive' );
+					$msg   = __( 'Enter the Substack publication subdomain.', 'mailerhive' );
+					$error = true;
 					break;
 				}
 				$done  = array();
@@ -511,6 +538,7 @@ final class Settings {
 				$latest = get_posts( array( 'post_type' => Issues::TYPE, 'post_status' => 'publish', 'posts_per_page' => 1, 'orderby' => 'date', 'order' => 'DESC' ) );
 				$r      = $latest ? Email::create_draft( (int) $latest[0]->ID ) : array( 'message' => 'There is no published issue yet.', 'campaign_id' => 0 );
 				$msg    = $r['message'];
+				$error  = empty( $r['ok'] );
 				$back   = 'mailerpress';
 				if ( ! empty( $r['campaign_id'] ) ) {
 					set_transient( 'mailerhive_notice_' . get_current_user_id(), $msg, 60 );
@@ -519,7 +547,7 @@ final class Settings {
 				}
 				break;
 		}
-		set_transient( 'mailerhive_notice_' . get_current_user_id(), $msg, 60 );
+		self::flash( $msg, $error );
 		wp_safe_redirect( add_query_arg( 'tab', $back, self::url() ) );
 		exit;
 	}
@@ -535,11 +563,7 @@ final class Settings {
 		$s   = self::all();
 
 		echo '<div class="wrap mailerhive-settings"><h1>MailerHive</h1>';
-		$notice = get_transient( 'mailerhive_notice_' . get_current_user_id() );
-		if ( $notice ) {
-			delete_transient( 'mailerhive_notice_' . get_current_user_id() );
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $notice ) . '</p></div>';
-		}
+		self::print_flash();
 		settings_errors( 'mailerhive' );
 		echo '<nav class="nav-tab-wrapper">';
 		foreach ( self::TABS as $key => $label ) {
@@ -684,7 +708,7 @@ final class Settings {
 		self::check( $s, 'detach_theme', __( 'Theme isolation', 'mailerhive' ), __( 'Detach theme styles, scripts and hooks on MailerHive pages', 'mailerhive' ), __( 'WordPress core and every plugin keep working, including Functionalities fonts, Rank Math, Core Forms and Perfmatters.', 'mailerhive' ) );
 		self::check( $s, 'shell_mailerpress_pages', __( 'Subscription pages', 'mailerhive' ), __( 'Render MailerPress unsubscribe and manage-subscription pages in the MailerHive shell', 'mailerhive' ) );
 		self::check( $s, 'landing_shell', __( 'Newsletter page', 'mailerhive' ), __( 'Render the newsletter page in the MailerHive design', 'mailerhive' ), __( 'Signup card, recent issues, then the page’s own content as a reading card. The page template setting is ignored while this is on.', 'mailerhive' ) );
-		self::text( $s, 'landing_recent', __( 'Recent issues on the newsletter page', 'mailerhive' ), '', 'small-text', 'number' );
+		self::text( $s, 'landing_recent', __( 'Recent issues on the newsletter page', 'mailerhive' ), __( 'How many recent issues to list, up to 50. Set 0 to hide the section.', 'mailerhive' ), 'small-text', 'number' );
 		self::select( $s, 'color_scheme', __( 'Color scheme', 'mailerhive' ), array( 'auto' => 'Follow the reader’s system setting', 'light' => 'Always light', 'dark' => 'Always dark' ) );
 		self::check( $s, 'show_theme_toggle', __( 'Theme toggle', 'mailerhive' ), __( 'Show a light/dark toggle in the header', 'mailerhive' ), __( 'Starts from the reader’s system setting. A choice is remembered and shared with the main site’s toggle. Hidden when the scheme is forced to light or dark.', 'mailerhive' ) );
 		self::text( $s, 'accent_light', __( 'Accent (light)', 'mailerhive' ), '', 'small-text', 'color' );
@@ -719,7 +743,11 @@ final class Settings {
 		self::text( $s, 'email_footer', __( 'Email footer note', 'mailerhive' ), __( 'Shown above the Unsubscribe and Manage subscription links.', 'mailerhive' ), 'large-text' );
 		self::heading( __( 'Campaigns written in MailerPress', 'mailerhive' ) );
 		self::check( $s, 'mirror_enabled', __( 'Mirror campaigns', 'mailerhive' ), __( 'Publish newsletters composed directly in MailerPress as issues once they are sent', 'mailerhive' ) );
-		self::row( __( 'Mirror lists', 'mailerhive' ), self::list_boxes( $s, 'mirror_list_ids', $lists ), __( 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.', 'mailerhive' ) );
+		$help = __( 'Only campaigns sent to at least one of these lists are mirrored. Customer and transactional sends stay private.', 'mailerhive' );
+		if ( MailerPress_Bridge::held() ) {
+			$help .= ' ' . __( 'Newsletters sent before MailerHive was installed are held back until you use Mirror past campaigns on the Tools tab.', 'mailerhive' );
+		}
+		self::row( __( 'Mirror lists', 'mailerhive' ), self::list_boxes( $s, 'mirror_list_ids', $lists ), $help );
 		self::select( $s, 'mirror_status', __( 'Mirrored issue status', 'mailerhive' ), array( 'publish' => 'Publish immediately', 'draft' => 'Save as draft for review' ) );
 		self::check( $s, 'redirect_web_view', __( 'View in browser', 'mailerhive' ), __( 'Send MailerPress "view in browser" links to the matching issue page', 'mailerhive' ) );
 		$mp = get_option( 'mailerpress_default_settings' );
@@ -860,7 +888,7 @@ final class Settings {
 			$result = $license->disconnect();
 			$ok     = __( 'License disconnected from this site.', 'mailerhive' );
 		}
-		set_transient( 'mailerhive_notice_' . get_current_user_id(), is_wp_error( $result ) ? $result->get_error_message() : $ok, 60 );
+		self::flash( is_wp_error( $result ) ? $result->get_error_message() : $ok, is_wp_error( $result ) );
 		wp_safe_redirect( add_query_arg( 'tab', 'license', self::url() ) );
 		exit;
 	}
@@ -944,7 +972,7 @@ final class Settings {
 			'Paid subscriptions module'   => self::on( 'module_paid' ) ? $where( 'MailerHive\\Modules\\Paid\\Members' ) . ( wp_next_scheduled( 'mailerhive_paid_sweep' ) ? ', next expiry check ' . esc_html( wp_date( 'M j, H:i', (int) wp_next_scheduled( 'mailerhive_paid_sweep' ) ) ) : '' ) : 'off',
 			'Issues'                      => $counts ? esc_html( implode( ', ', array_map( static fn( $k, $v ) => "{$v} {$k}", array_keys( $counts ), $counts ) ) ) : '0',
 			'Issue URLs'                  => '<code>' . esc_html( home_url( '/' . self::issue_base() . '/{slug}/' ) ) . '</code>',
-			'Last campaign sync'          => $last ? esc_html( sprintf( '%s: %d linked, %d published', wp_date( 'M j, Y H:i', (int) $last['time'] ), $last['linked'], $last['mirrored'] ) ) : 'never',
+			'Last campaign sync'          => $last ? esc_html( sprintf( '%s: %d linked, %d mirrored', wp_date( 'M j, Y H:i', (int) $last['time'] ), $last['linked'], $last['mirrored'] ) ) : 'never',
 			'Next scheduled sync'         => $next ? esc_html( wp_date( 'M j, Y H:i', $next ) ) : 'not scheduled',
 		);
 		echo '<h2>Status</h2><table class="widefat striped" style="max-width:820px"><tbody>';
@@ -962,7 +990,12 @@ final class Settings {
 			echo ' <span class="description">' . esc_html( $help ) . '</span></form>';
 		};
 		echo '<h2>Tools</h2>';
-		$button( 'sync', 'Sync MailerPress now', 'Link drafted campaigns to their issues and publish sent newsletters.' );
+		$button( 'sync', 'Sync MailerPress now', 'Link drafted campaigns to their issues and mirror sent newsletters.' );
+		$held = count( MailerPress_Bridge::held() );
+		if ( $held ) {
+			/* translators: %d: number of campaigns */
+			$button( 'release_held', __( 'Mirror past campaigns', 'mailerhive' ), sprintf( _n( '%d newsletter sent before MailerHive was installed is held back. This mirrors it if it went to a mirror list, using the mirrored issue status on the MailerPress tab.', '%d newsletters sent before MailerHive was installed are held back. This mirrors the ones sent to a mirror list, using the mirrored issue status on the MailerPress tab.', $held, 'mailerhive' ), $held ) );
+		}
 		$button( 'relink', 'Relink imported issues', 'Point links between imported Substack issues at their local pages.' );
 		$button( 'flush', 'Refresh permalinks', 'Use after changing the issue URL base.' );
 		$button( 'seed', 'Re-detect settings', 'Fill blank settings from the site. Saved values are kept.' );

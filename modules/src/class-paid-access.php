@@ -376,7 +376,8 @@ final class Access {
 		$emails  = self::viewer_emails();
 		$sent    = isset( $_GET['mh_link'] ) && 'sent' === $_GET['mh_link']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$tiers   = Plans::tiers();
-		$heading = 1 === count( $tiers ) || $rank <= 1
+		// "and above" only when a higher tier exists, matching the issue editor's dropdown.
+		$heading = $rank < 1 || $rank >= count( $tiers )
 			/* translators: %s: tier name */
 			? sprintf( __( 'This issue is for %s subscribers', 'mailerhive' ), Plans::name( $need ) )
 			/* translators: %s: tier name */

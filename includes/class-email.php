@@ -15,9 +15,14 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- MailerPress and Core Forms keep their data in custom tables without a public read API; table names come from $wpdb->prefix and values are prepared.
 
 final class Email {
+	/** Transient prefix for a "Create MailerPress draft" result waiting to be shown. */
+	private const RESULT = 'mailerhive_draft_result_';
+
 	public static function init(): void {
 		add_action( 'wp_after_insert_post', array( __CLASS__, 'on_publish' ), 20, 4 );
 		add_action( 'admin_post_mailerhive_draft', array( __CLASS__, 'handle_button' ) );
+		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'editor_notice' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'admin_notice' ) );
 	}
 
 	public static function edit_url( int $campaign_id ): string {
@@ -65,9 +70,63 @@ final class Email {
 			wp_die( 'Not allowed.' );
 		}
 		$r = self::create_draft( $post_id );
-		set_transient( 'mailerhive_notice_' . get_current_user_id(), $r['message'], 60 );
+		if ( ! $r['campaign_id'] ) {
+			// No campaign to open, so the result goes back to the issue it came from.
+			set_transient( self::RESULT . get_current_user_id(), array( 'post_id' => $post_id, 'ok' => $r['ok'], 'message' => $r['message'] ), 60 );
+		}
 		wp_safe_redirect( $r['campaign_id'] ? self::edit_url( $r['campaign_id'] ) : get_edit_post_link( $post_id, 'raw' ) );
 		exit;
+	}
+
+	/**
+	 * Take the waiting draft result for the screen being viewed: the issue's own edit
+	 * screen, or the issues list.
+	 *
+	 * @return array{post_id:int,ok:bool,message:string}|null
+	 */
+	private static function take_result(): ?array {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || Issues::TYPE !== $screen->post_type || ! in_array( $screen->base, array( 'post', 'edit' ), true ) ) {
+			return null;
+		}
+		$key    = self::RESULT . get_current_user_id();
+		$result = get_transient( $key );
+		if ( ! is_array( $result ) ) {
+			return null;
+		}
+		$post_id = absint( $_GET['post'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen check.
+		if ( 'post' === $screen->base && (int) $result['post_id'] !== $post_id ) {
+			return null;
+		}
+		delete_transient( $key );
+		return $result;
+	}
+
+	/** Block editor: show the result as an editor notice (admin notices sit behind the editor). */
+	public static function editor_notice(): void {
+		$result = self::take_result();
+		if ( ! $result ) {
+			return;
+		}
+		$script = sprintf(
+			'wp.data.dispatch("core/notices").createNotice(%s,%s,{id:"mailerhive-draft",isDismissible:true});',
+			wp_json_encode( $result['ok'] ? 'success' : 'error' ),
+			wp_json_encode( (string) $result['message'] )
+		);
+		wp_enqueue_script( 'wp-notices' );
+		wp_add_inline_script( 'wp-notices', $script );
+	}
+
+	/** Classic editor and the issues list. */
+	public static function admin_notice(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( $screen && $screen->is_block_editor() ) {
+			return; // handled by editor_notice()
+		}
+		$result = self::take_result();
+		if ( $result ) {
+			printf( '<div class="notice %s is-dismissible"><p>%s</p></div>', $result['ok'] ? 'notice-success' : 'notice-error', esc_html( (string) $result['message'] ) );
+		}
 	}
 
 	/**

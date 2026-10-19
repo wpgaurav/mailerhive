@@ -19,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- MailerPress and Core Forms keep their data in custom tables without a public read API; table names come from $wpdb->prefix and values are prepared.
 
 final class MailerPress_Bridge {
-	const SYNC_HOOK = 'mailerhive_sync_campaigns';
+	const SYNC_HOOK   = 'mailerhive_sync_campaigns';
+	const HOLD_OPTION = 'mailerhive_mirror_held';
 
 	public static function init(): void {
 		add_action( 'wp_loaded', array( __CLASS__, 'redirect_web_view' ), 0 );
@@ -37,6 +38,27 @@ final class MailerPress_Bridge {
 		if ( ! wp_next_scheduled( self::SYNC_HOOK ) ) {
 			wp_schedule_event( time() + 300, 'hourly', self::SYNC_HOOK );
 		}
+	}
+
+	/**
+	 * Fresh installs only: hold back newsletters already sent, so the first sync
+	 * doesn't publish the whole back catalogue. Tools → "Mirror past campaigns"
+	 * releases them.
+	 */
+	public static function hold_back_catalogue(): void {
+		global $wpdb;
+		if ( ! self::available() ) {
+			return;
+		}
+		$ids = array_map( 'intval', (array) $wpdb->get_col( "SELECT campaign_id FROM {$wpdb->prefix}mailerpress_campaigns WHERE status = 'sent' AND campaign_type = 'newsletter' AND automation_id IS NULL" ) );
+		if ( $ids ) {
+			update_option( self::HOLD_OPTION, $ids, false );
+		}
+	}
+
+	/** Campaign IDs the sync skips until the site owner releases them. */
+	public static function held(): array {
+		return array_map( 'intval', (array) get_option( self::HOLD_OPTION, array() ) );
 	}
 
 	public static function issue_for_campaign( int $campaign_id ): ?\WP_Post {
@@ -185,7 +207,11 @@ final class MailerPress_Bridge {
 			 WHERE status = 'sent' AND campaign_type = 'newsletter' AND automation_id IS NULL
 			 ORDER BY campaign_id ASC" // phpcs:ignore WordPress.DB.PreparedSQL
 		);
+		$held = array_flip( self::held() );
 		foreach ( $sent as $row ) {
+			if ( isset( $held[ (int) $row->campaign_id ] ) ) {
+				continue;
+			}
 			$cfg = self::config( $row );
 			if ( ! empty( $cfg['publicationPostId'] ) || ! array_intersect( $lists, self::list_ids( $cfg ) ) ) {
 				continue;
