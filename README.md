@@ -30,6 +30,16 @@ Beehiiv- and Ghost-style newsletter publishing for WordPress and [MailerPress](h
 
 MailerHive updates itself through the normal WordPress plugin screen once a free license is active under **Newsletter → Settings → License**. Get a key at [gauravtiwari.org/product/mailerhive](https://gauravtiwari.org/product/mailerhive/). Every feature works without a license; only automatic updates need one.
 
+## Privacy
+
+No telemetry: MailerHive doesn't send usage statistics, your content or your visitors' data to gauravtiwari.org.
+
+License activation sends the license key, product ID, site URL, plugin version, WordPress version and PHP version to gauravtiwari.org, and activated sites contact the store when WordPress checks for updates. Update packages and update-screen images load from r2.gauravtiwari.org.
+
+Substack import, remote image copying and the optional Rybbit script run only when you use them. Paid access sets `mh_reader` and `mh_member` cookies.
+
+The store's [privacy policy](https://gauravtiwari.org/privacy-policy/) covers license data.
+
 ## Installation
 
 1. Download the latest release zip, or clone this repo into `wp-content/plugins/mailerhive`.

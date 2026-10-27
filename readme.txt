@@ -30,6 +30,25 @@ Optional modules (off by default):
 
 MailerHive works without MailerPress for the archive and reading pages; email features need MailerPress.
 
+== Privacy ==
+
+No telemetry: MailerHive doesn't send usage statistics, your content or your visitors' data to gauravtiwari.org.
+
+License and updates: when you activate a license, MailerHive sends the license key, the product ID, your site address and the plugin version, plus your WordPress and PHP versions, to the FluentCart store at gauravtiwari.org. It contacts the store again when you deactivate the license and when WordPress checks for updates. Nothing is sent before you enter a key. Update packages and update-screen images load from r2.gauravtiwari.org. Every feature works without a license.
+
+Other outbound requests:
+
+* Substack import fetches the publication you name and copies its images into your media library.
+* Remote images in issue content are downloaded to your site.
+* Rybbit analytics loads only if you add your own script URL and site ID.
+
+Data stored on your site:
+
+* `mh_reader` and `mh_member` cookies let paid readers open member-only issues.
+* Share links are plain links with no third-party scripts.
+
+Store privacy policy: https://gauravtiwari.org/privacy-policy/
+
 == Installation ==
 
 1. Upload the `mailerhive` folder to `/wp-content/plugins/` and activate it.
