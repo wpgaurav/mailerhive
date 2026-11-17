@@ -225,7 +225,7 @@ final class Email {
 			: '<span style="font-size:15px;font-weight:600;color:#212121">' . $brand . '</span>';
 
 		return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . $title . '</title></head>'
-			. '<body style="margin:0;padding:0;background:#F7EFE5;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,Arial,sans-serif;color:#2A2A2A">'
+			. '<body style="margin:0;padding:0;background:#F7EFE5;font-family:' . Typography::email_stack() . ';color:#2A2A2A">'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7EFE5"><tr><td align="center" style="padding:24px 12px">'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#FFFFFE;border-radius:14px">'
 			. '<tr><td style="padding:20px 32px;border-bottom:1px solid #E7E1D9"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td>' . $head . '</td><td align="right" style="font-size:12px;color:#5C5852">' . $date . '</td></tr></table></td></tr>'

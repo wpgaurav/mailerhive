@@ -14,16 +14,37 @@ Shell::head();
 /* translators: %s: newsletter name */
 $mailerhive_title = (string) Settings::get( 'archive_title' ) ?: sprintf( __( '%s: every issue', 'mailerhive' ), Settings::brand() );
 $mailerhive_intro = (string) Settings::get( 'archive_intro' ) ?: Settings::tagline();
+$mailerhive_q     = Settings::on( 'archive_search' ) ? Issues::search_term() : '';
+$mailerhive_nums  = Settings::on( 'show_issue_number' );
 ?>
 <main id="mh-main" class="mh-main">
 	<header class="mh-archive__head">
 		<span class="mh-archive__icon"><?php echo Icons::get( 'archive' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
 		<h1><?php echo esc_html( $mailerhive_title ); ?></h1>
 		<?php if ( $mailerhive_intro ) : ?><p><?php echo esc_html( $mailerhive_intro ); ?></p><?php endif; ?>
+		<?php if ( Settings::on( 'archive_search' ) ) : ?>
+			<form class="mh-search" role="search" method="get" action="<?php echo esc_url( (string) get_post_type_archive_link( Issues::TYPE ) ); ?>">
+				<label class="mh-sr" for="mh-q"><?php esc_html_e( 'Search issues', 'mailerhive' ); ?></label>
+				<?php echo Icons::get( 'search', 'mh-search__icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<input type="search" id="mh-q" name="q" value="<?php echo esc_attr( $mailerhive_q ); ?>" placeholder="<?php esc_attr_e( 'Search issues', 'mailerhive' ); ?>" maxlength="100" autocomplete="off">
+				<button type="submit" class="mh-btn mh-btn--sm"><?php esc_html_e( 'Search', 'mailerhive' ); ?></button>
+			</form>
+		<?php endif; ?>
 	</header>
 
+	<?php if ( '' !== $mailerhive_q ) : ?>
+		<p class="mh-search__status" role="status">
+			<?php
+			global $wp_query;
+			/* translators: 1: number of results, 2: search term */
+			echo esc_html( sprintf( _n( '%1$d issue matches "%2$s".', '%1$d issues match "%2$s".', (int) $wp_query->found_posts, 'mailerhive' ), (int) $wp_query->found_posts, $mailerhive_q ) );
+			?>
+			<a href="<?php echo esc_url( (string) get_post_type_archive_link( Issues::TYPE ) ); ?>"><?php esc_html_e( 'Show every issue', 'mailerhive' ); ?></a>
+		</p>
+	<?php endif; ?>
+
 	<?php if ( ! have_posts() ) : ?>
-		<p class="mh-archive__empty"><?php esc_html_e( 'The first issue is on its way.', 'mailerhive' ); ?></p>
+		<p class="mh-archive__empty"><?php echo '' !== $mailerhive_q ? esc_html__( 'Try a shorter word or a different topic.', 'mailerhive' ) : esc_html__( 'The first issue is on its way.', 'mailerhive' ); ?></p>
 	<?php else : ?>
 		<?php $mailerhive_year = ''; ?>
 		<?php while ( have_posts() ) : ?>
@@ -48,7 +69,7 @@ $mailerhive_intro = (string) Settings::get( 'archive_intro' ) ?: Settings::tagli
 			?>
 			<li>
 				<a class="mh-row" href="<?php echo esc_url( get_permalink( $mailerhive_issue ) ); ?>">
-					<time datetime="<?php echo esc_attr( get_the_date( 'Y-m-d', $mailerhive_issue ) ); ?>"><?php echo esc_html( get_the_date( 'M j', $mailerhive_issue ) ); ?></time>
+					<span class="mh-row__when"><time datetime="<?php echo esc_attr( get_the_date( 'Y-m-d', $mailerhive_issue ) ); ?>"><?php echo esc_html( get_the_date( 'M j', $mailerhive_issue ) ); ?></time><?php if ( $mailerhive_nums && Issues::number( $mailerhive_issue ) ) : ?><small>#<?php echo (int) Issues::number( $mailerhive_issue ); ?></small><?php endif; ?></span>
 					<span class="mh-row__main"><span class="mh-row__t"><?php echo esc_html( get_the_title( $mailerhive_issue ) ); ?><?php echo apply_filters( 'mailerhive_issue_badge', '', $mailerhive_issue ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the filter callback. ?></span><span class="mh-row__d"><?php echo esc_html( wp_trim_words( Issues::subtitle( $mailerhive_issue ), 24 ) ); ?></span></span>
 					<span class="mh-row__go"><?php echo Icons::get( 'arrow-right' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
 				</a>

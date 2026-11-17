@@ -1,5 +1,6 @@
 /* MailerHive reading shell. Standalone document: no theme CSS loads on these pages.
-   GT tokens, compact type ladder, 4px buttons, no letter-spacing. */
+   GT tokens, compact type ladder, 4px buttons, no letter-spacing.
+   Fonts, sizes and weights come from Settings → Typography as --mh-* custom properties. */
 :root{
   --mh-canvas:#F7EFE5;--mh-paper:#FFFFFC;--mh-card:#FFFFFE;--mh-ink:#212121;--mh-body:#2A2A2A;--mh-muted:#5C5852;
   --mh-line:#E7E1D9;--mh-accent:#C0392B;--mh-accent-hover:#A2301F;--mh-accent-ink:#FFFFFF;
@@ -8,6 +9,10 @@
   --mh-t1:clamp(1.875rem, 1.4rem + 1.6vw, 2.5rem);--mh-t2:clamp(1.5rem, 1.25rem + .8vw, 1.75rem);
   --mh-t3:1.3125rem;--mh-t4:1.1875rem;--mh-t5:1.0625rem;--mh-t6:.9375rem;--mh-t7:.875rem;--mh-t8:.75rem;
   --mh-ease:cubic-bezier(.25,1,.5,1);
+  /* typography: overridden from Settings → Typography */
+  --mh-font:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mh-font-head:var(--mh-font);
+  --mh-font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --mh-prose-size:1.0625rem;--mh-prose-lh:1.75;--mh-measure:46rem;--mh-w-head:800;--mh-w-body:400;--mh-w-strong:600;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -22,8 +27,11 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
-  font-family:PolySansWeb,"PolySans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:1rem;line-height:1.6;
+  font-family:var(--mh-font);font-weight:var(--mh-w-body);font-size:1rem;line-height:1.6;
+  font-kerning:normal;font-optical-sizing:auto;text-rendering:optimizeLegibility;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.mailerhive :where(h1,h2,h3,h4,.mh-mail__subject){font-family:var(--mh-font-head);text-wrap:balance}
+.mh-prose :where(p,li,blockquote,figcaption){text-wrap:pretty}
 .mailerhive :where(h1,h2,h3,h4,p,ul,ol,figure,blockquote){margin:0}
 .mailerhive a{color:var(--mh-accent);text-decoration-thickness:1px;text-underline-offset:3px}
 .mailerhive a:hover{color:var(--mh-ink)}
@@ -68,33 +76,33 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 
 /* the issue as an email */
 .mh-main{max-width:62rem;margin:0 auto;padding:clamp(1.5rem, 1rem + 2.5vw, 3.5rem) 20px clamp(3rem, 2rem + 3vw, 5rem)}
-.mh-mail{position:relative;max-width:46rem;margin:2.5rem auto 0;background:var(--mh-card);border-radius:16px;box-shadow:var(--mh-shadow)}
+.mh-mail{position:relative;max-width:var(--mh-measure);margin:2.5rem auto 0;background:var(--mh-card);border-radius:16px;box-shadow:var(--mh-shadow)}
 .mh-avatar--img{object-fit:cover;background:none;padding:0}
 .mh-sub__cta{margin-top:1.5rem}
 .mh-mail__head{padding:clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem) clamp(1.25rem, .75rem + 2vw, 2.75rem) 0}
-.mh-mail__subject{font-size:var(--mh-t1);font-weight:800;line-height:1.12;color:var(--mh-ink)}
+.mh-mail__subject{font-size:var(--mh-t1);font-weight:var(--mh-w-head);line-height:1.12;color:var(--mh-ink)}
 .mh-mail__dek{margin-top:.75rem;font-size:var(--mh-t4);line-height:1.55;color:var(--mh-muted)}
 .mh-mail__body{padding:clamp(1.5rem, 1rem + 1.5vw, 2rem) clamp(1.25rem, .75rem + 2vw, 2.75rem) clamp(2rem, 1.5rem + 2vw, 3rem)}
 
 /* issue typography */
-.mh-prose{font-size:var(--mh-t5);line-height:1.75;color:var(--mh-body);overflow-wrap:break-word}
+.mh-prose{font-size:var(--mh-prose-size);line-height:var(--mh-prose-lh);color:var(--mh-body);overflow-wrap:break-word}
 .mh-prose > * + *{margin-top:1.15em}
 .mh-prose :where(h2,h3,h4){color:var(--mh-ink);line-height:1.3;font-weight:600}
-.mh-prose h2{font-size:var(--mh-t2);font-weight:800;margin-top:1.9em}
+.mh-prose h2{font-size:var(--mh-t2);font-weight:var(--mh-w-head);margin-top:1.9em}
 .mh-prose h3{font-size:var(--mh-t3);margin-top:1.6em}
 .mh-prose h4{font-size:var(--mh-t4);margin-top:1.4em}
 .mh-prose :where(ul,ol){padding-left:1.35em}
 .mh-prose li + li{margin-top:.45em}
 .mh-prose li::marker{color:var(--mh-accent)}
-.mh-prose strong,.mh-prose b{font-weight:600;color:var(--mh-ink)}
+.mh-prose strong,.mh-prose b{font-weight:var(--mh-w-strong);color:var(--mh-ink)}
 .mh-prose blockquote{padding:1rem 1.25rem;background:var(--mh-tint);border-radius:10px;color:var(--mh-ink)}
 .mh-prose blockquote p + p{margin-top:.75em}
 .mh-prose img{display:block;max-width:100%;height:auto;border-radius:10px}
 .mh-prose figure{margin-inline:0}
 .mh-prose figcaption{margin-top:.6rem;font-size:var(--mh-t7);line-height:1.5;color:var(--mh-muted);text-align:center}
 .mh-prose hr{border:0;border-top:1px solid var(--mh-line);margin:2em 0}
-.mh-prose code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;padding:.1em .35em;background:var(--mh-tint);border-radius:4px}
-.mh-prose pre{padding:1rem 1.15rem;background:var(--mh-paper);border:1px solid var(--mh-line);border-radius:10px;overflow:auto;font-size:var(--mh-t7);line-height:1.6}
+.mh-prose code{font-family:var(--mh-font-mono);font-size:.88em;padding:.1em .35em;background:var(--mh-tint);border-radius:4px}
+.mh-prose pre{font-family:var(--mh-font-mono);padding:1rem 1.15rem;background:var(--mh-paper);border:1px solid var(--mh-line);border-radius:10px;overflow:auto;font-size:var(--mh-t7);line-height:1.6}
 .mh-prose pre code{padding:0;background:none}
 .mh-prose table{width:100%;border-collapse:collapse;font-size:var(--mh-t7)}
 .mh-prose :where(th,td){padding:.6rem .75rem;border-bottom:1px solid var(--mh-line);text-align:left;vertical-align:top}
@@ -115,7 +123,7 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mailerhive .mh-share__btn .mh-icon{width:18px;height:18px}
 @media (pointer:coarse){.mailerhive .mh-share__btn{width:44px;height:44px}}
 @media (max-width:640px){.mh-share{margin-left:18px;margin-right:18px}}
-.mh-pager{display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:46rem;margin:1.5rem auto 0}
+.mh-pager{display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:var(--mh-measure);margin:1.5rem auto 0}
 .mailerhive .mh-pager__link{display:flex;flex-direction:column;gap:.25rem;padding:1rem 1.15rem;background:var(--mh-card);border:1px solid var(--mh-line);border-radius:12px;color:var(--mh-ink);text-decoration:none;transition:border-color .22s var(--mh-ease)}
 .mailerhive .mh-pager__link:hover{border-color:var(--mh-accent);color:var(--mh-ink)}
 .mh-pager__link small{font-size:var(--mh-t8);color:var(--mh-muted)}
@@ -125,24 +133,25 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 
 /* subscribe box */
 .mh-sub{max-width:40rem;margin:clamp(2.5rem, 2rem + 2vw, 4rem) auto 0;text-align:center}
-.mh-sub h2{font-size:var(--mh-t2);font-weight:800;line-height:1.15;color:var(--mh-ink)}
+.mh-sub h2{font-size:var(--mh-t2);font-weight:var(--mh-w-head);line-height:1.15;color:var(--mh-ink)}
 .mh-sub > p{margin-top:.6rem;font-size:var(--mh-t5);line-height:1.55;color:var(--mh-muted)}
 .mh-sub__form{margin-top:1.5rem;--panel:var(--mh-card);--line:var(--mh-line);--ink:var(--mh-ink);--muted:var(--mh-muted);--primary:var(--mh-accent);--primary-hover:var(--mh-accent-hover);--tint:color-mix(in srgb,var(--mh-accent) 14%,transparent)}
 .mh-facts{display:flex;flex-wrap:wrap;justify-content:center;gap:.25rem 1.25rem;margin:1.25rem 0 0;padding:0;list-style:none;font-size:var(--mh-t7);color:var(--mh-muted)}
 .mh-facts li{display:inline-flex;align-items:center;gap:.5rem}
 
 /* archive */
-.mh-archive__head{max-width:46rem;margin:0 auto 2rem;text-align:center}
-.mh-archive__head h1{font-size:var(--mh-t1);font-weight:800;line-height:1.12;color:var(--mh-ink)}
+.mh-archive__head{max-width:var(--mh-measure);margin:0 auto 2rem;text-align:center}
+.mh-archive__head h1{font-size:var(--mh-t1);font-weight:var(--mh-w-head);line-height:1.12;color:var(--mh-ink)}
 .mh-archive__head p{margin-top:.6rem;font-size:var(--mh-t5);color:var(--mh-muted)}
 .mh-archive__empty{text-align:center;color:var(--mh-muted)}
-.mh-year{max-width:46rem;margin:0 auto 1.75rem;background:var(--mh-card);border-radius:16px;box-shadow:var(--mh-shadow);overflow:hidden}
+.mh-year{max-width:var(--mh-measure);margin:0 auto 1.75rem;background:var(--mh-card);border-radius:16px;box-shadow:var(--mh-shadow);overflow:hidden}
 .mh-year h2{padding:1rem 1.5rem;font-size:var(--mh-t6);font-weight:600;color:var(--mh-muted);border-bottom:1px solid var(--mh-line)}
 .mh-list{list-style:none;margin:0;padding:0}
 .mh-list li + li{border-top:1px solid var(--mh-line)}
 .mailerhive .mh-row{display:grid;grid-template-columns:4.5rem minmax(0,1fr);gap:1rem;align-items:baseline;padding:1.1rem 1.5rem;color:var(--mh-body);text-decoration:none;transition:background-color .22s var(--mh-ease)}
 .mailerhive .mh-row:hover{background:var(--mh-tint);color:var(--mh-body)}
-.mh-row time{font-size:var(--mh-t7);color:var(--mh-muted);font-variant-numeric:tabular-nums}
+.mh-row__when{display:flex;flex-direction:column;gap:.1rem;font-size:var(--mh-t7);color:var(--mh-muted);font-variant-numeric:tabular-nums}
+.mh-row__when small{font-size:var(--mh-t8)}
 .mh-row__main{display:flex;flex-direction:column;gap:.25rem}
 .mh-row__t{font-size:var(--mh-t5);font-weight:600;line-height:1.35;color:var(--mh-ink)}
 .mh-row__d{font-size:var(--mh-t7);line-height:1.5;color:var(--mh-muted)}
@@ -169,8 +178,8 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 /* the compact signup form keeps its own CSS; give its button the shell's accent ink */
 .mailerhive .mh-sub__form .cf-form{--jn-btn-ink:var(--mh-accent-ink)}
 
-/* Stylistic accents use PolySans' true italics: deks, subtitles, bylines, captions, quotes, notes. */
-.mh-mail__dek,.mh-brand__txt small,.mh-row__d,.mh-archive__head p,.mh-sub > p,.mh-prose figcaption,.mh-prose blockquote,.mh-pager__link small,.mh-foot__note{font-style:italic}
+/* Italic accents on deks, bylines, captions, quotes and notes: only when the font has a real italic (Settings → Typography). */
+.mh-italic :is(.mh-mail__dek,.mh-brand__txt small,.mh-row__d,.mh-archive__head > p,.mh-sub > p,.mh-prose figcaption,.mh-prose blockquote,.mh-pager__link small,.mh-foot__note,.mh-paywall__intro){font-style:italic}
 
 /* ---------- icons ---------- */
 .mailerhive .mh-icon{display:inline-block;flex:none;width:1.15em;height:1.15em;vertical-align:-.2em;stroke-width:1.75}
@@ -217,9 +226,9 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
   .mh-mail{border-radius:14px}
   .mh-mail__from,.mh-mail__head,.mh-mail__body{padding-left:18px;padding-right:18px}
   .mh-mail__from .mh-avatar{width:68px;height:68px;margin-top:-34px}
-  .mh-prose{font-size:1rem}
+  .mh-prose{font-size:max(1rem, calc(var(--mh-prose-size) - .0625rem))}
   .mailerhive .mh-row{grid-template-columns:minmax(0,1fr) auto;gap:.2rem .75rem;padding:1rem 14px}
-  .mh-row time{grid-column:1 / -1}
+  .mh-row__when{grid-column:1 / -1;flex-direction:row;gap:.5rem}
 }
 
 /* ---------- newsletter page ---------- */
@@ -265,8 +274,8 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mh-paywall__card{padding:clamp(1.5rem, 1rem + 2vw, 2.25rem) 0 0;border-top:1px solid var(--mh-line)}
 .mh-paywall .mh-sub__icon,.mh-plans .mh-sub__icon{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:999px;background:var(--mh-tint);color:var(--mh-accent)}
 .mh-paywall .mh-sub__icon .mh-icon,.mh-plans .mh-sub__icon .mh-icon{width:24px;height:24px}
-.mh-prose .mh-paywall h2,.mh-plans h2{margin:.9rem 0 0;font-size:var(--mh-t2);font-weight:800;line-height:1.2;color:var(--mh-ink)}
-.mh-paywall__intro{max-width:34rem;margin:.6rem auto 0;font-size:var(--mh-t5);line-height:1.55;color:var(--mh-muted);font-style:italic}
+.mh-prose .mh-paywall h2,.mh-plans h2{margin:.9rem 0 0;font-size:var(--mh-t2);font-weight:var(--mh-w-head);line-height:1.2;color:var(--mh-ink)}
+.mh-paywall__intro{max-width:34rem;margin:.6rem auto 0;font-size:var(--mh-t5);line-height:1.55;color:var(--mh-muted)}
 .mh-paywall__note{margin:.75rem auto 0;font-size:var(--mh-t7);color:var(--mh-muted)}
 .mh-tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem;margin:1.5rem 0 0;text-align:left}
 .mh-tier{display:flex;flex-direction:column;padding:1.15rem;background:var(--mh-paper);border:1px solid var(--mh-line);border-radius:12px}
@@ -300,3 +309,42 @@ body.mailerhive{margin:0;background:var(--mh-canvas);color:var(--mh-body);
 .mh-account__list{padding-left:1.1em}
 @media (max-width:560px){.mh-tiers{grid-template-columns:1fr}.mh-badge{margin-left:0;margin-top:.3rem}}
 .mh-tier--free .mh-plan__go{background:transparent;border:1px solid var(--mh-accent);color:var(--mh-accent)}
+
+/* ---------- cover image ---------- */
+.mh-cover{margin:0;padding:clamp(1.25rem, .9rem + 1.5vw, 2rem) clamp(1.25rem, .75rem + 2vw, 2.75rem) 0}
+.mh-cover__img{display:block;width:100%;height:auto;border-radius:10px}
+@media (max-width:640px){.mh-cover{padding-left:18px;padding-right:18px}}
+
+/* ---------- issue number ---------- */
+.mh-mail__no{font-weight:600;color:var(--mh-ink)}
+
+/* ---------- reading progress (scroll-driven, no JS) ---------- */
+.mh-progress{display:none}
+@supports (animation-timeline:scroll()){
+  .mh-progress{display:block;position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--mh-accent);transform-origin:0 50%;transform:scaleX(0);
+    animation:mh-progress linear both;animation-timeline:scroll(root)}
+  @keyframes mh-progress{to{transform:scaleX(1)}}
+}
+@media (prefers-reduced-motion:reduce){.mh-progress{display:none}}
+
+/* ---------- archive search ---------- */
+.mh-search{position:relative;display:flex;gap:.5rem;max-width:30rem;margin:1.5rem auto 0}
+.mh-search__icon{position:absolute;left:.85rem;top:50%;width:18px!important;height:18px!important;margin-top:-9px;color:var(--mh-muted);pointer-events:none}
+.mh-search input[type=search]{flex:1;min-width:0;min-height:44px;padding:0 .85rem 0 2.5rem;border:1px solid var(--mh-line);border-radius:4px;background:var(--mh-card);color:var(--mh-ink);font:inherit;font-size:var(--mh-t6)}
+.mh-search input[type=search]:focus{border-color:var(--mh-accent);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--mh-accent) 22%,transparent)}
+.mailerhive .mh-search .mh-btn{min-height:44px;border:0;cursor:pointer;font:inherit;font-size:var(--mh-t7);font-weight:600}
+.mh-search__status{max-width:var(--mh-measure);margin:0 auto 1.25rem;text-align:center;font-size:var(--mh-t7);color:var(--mh-muted)}
+.mh-search__status a{margin-left:.35rem;font-weight:600}
+
+/* ---------- print: just the issue ---------- */
+@media print{
+  .mh-top,.mh-share,.mh-pager,.mh-sub,.mh-foot,.mh-skip,.mh-search,.mh-paywall{display:none!important}
+  body.mailerhive{background:#fff;color:#000}
+  .mh-main{padding:0}
+  .mh-mail{max-width:none;margin:0;box-shadow:none;border-radius:0}
+  .mh-mail__from .mh-avatar{margin-top:0;box-shadow:none}
+  .mh-prose a{color:#000}
+  .mh-prose a[href^="http"]::after{content:" (" attr(href) ")";font-size:.8em;word-break:break-all}
+  .mh-prose :where(img,figure,pre,blockquote,table){break-inside:avoid}
+  .mh-prose :where(h2,h3,h4){break-after:avoid}
+}

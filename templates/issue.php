@@ -23,7 +23,9 @@ if ( class_exists( '\MailerHive\Modules\Paid\Access' ) && \MailerHive\Modules\Pa
 $mailerhive_plain = html_entity_decode( wp_strip_all_tags( $mailerhive_text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 $mailerhive_split = preg_split( '/[\s\p{Z}]+/u', $mailerhive_plain, -1, PREG_SPLIT_NO_EMPTY );
 $mailerhive_words = false === $mailerhive_split ? str_word_count( $mailerhive_plain ) : count( $mailerhive_split );
-$mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / 230 ) );
+$mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / max( 100, (int) Settings::get( 'reading_wpm' ) ?: 230 ) ) );
+$mailerhive_number     = Settings::on( 'show_issue_number' ) ? Issues::number( $mailerhive_post ) : 0;
+$mailerhive_cover      = Settings::on( 'show_cover' ) && has_post_thumbnail( $mailerhive_post ) ? get_the_post_thumbnail( $mailerhive_post, 'large', array( 'class' => 'mh-cover__img', 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 800px) 100vw, 736px' ) ) : '';
 ?>
 <main id="mh-main" class="mh-main">
 	<article class="mh-mail" aria-labelledby="mh-subject">
@@ -31,10 +33,16 @@ $mailerhive_minutes    = max( 1, (int) round( $mailerhive_words / 230 ) );
 			<?php echo Shell::avatar( 76 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<p class="mh-mail__sender"><?php echo Shell::sender_line(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in sender_line(). ?></p>
 			<p class="mh-mail__meta">
+				<?php if ( $mailerhive_number ) : ?>
+					<span class="mh-mail__no"><?php echo Icons::get( 'news' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php /* translators: %d: issue number */ echo esc_html( sprintf( __( 'Issue #%d', 'mailerhive' ), $mailerhive_number ) ); ?></span>
+				<?php endif; ?>
 				<span><?php echo Icons::get( 'calendar' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><time datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>"><?php echo esc_html( get_the_date() ); ?></time></span>
 				<span><?php echo Icons::get( 'clock' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php /* translators: %d: minutes */ echo esc_html( sprintf( _n( '%d min read', '%d min read', $mailerhive_minutes, 'mailerhive' ), $mailerhive_minutes ) ); ?></span>
 			</p>
 		</header>
+		<?php if ( $mailerhive_cover ) : ?>
+			<figure class="mh-cover"><?php echo $mailerhive_cover; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core image markup. ?></figure>
+		<?php endif; ?>
 		<div class="mh-mail__head">
 			<h1 class="mh-mail__subject" id="mh-subject"><?php the_title(); ?></h1>
 			<?php if ( $mailerhive_subtitle ) : ?>
